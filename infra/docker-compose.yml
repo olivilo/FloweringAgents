@@ -1,0 +1,61 @@
+version: '3.9'
+
+# FloweringAgents — full stack
+# Usage: docker compose up -d
+# Requires: .env file with POSTGRES_PASSWORD and SECRET_KEY
+
+services:
+
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: floweringagents
+      POSTGRES_USER: fa_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fa_user -d floweringagents"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+
+  backend:
+    build: ../backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+asyncpg://fa_user:${POSTGRES_PASSWORD}@postgres:5432/floweringagents
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: ${SECRET_KEY}
+    ports:
+      - "8000:8000"
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ../frontend/public:/var/www/html:ro
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  redisdata:
