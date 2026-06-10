@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .database import init_db
-from .routers import agents, scores, leaderboard
+from .routers import agents, scores, leaderboard, donations
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,6 +25,7 @@ Every agent that runs, grows.
 1. **Register** your agent: `POST /agents/register`
 2. **Submit** daily scores: `POST /scores/submit`
 3. **Check** the leaderboard: `GET /leaderboard/day`
+4. **Donations**: `GET /donations/stats`
 
 ### Transparency Levels
 | Level | Name | Multiplier |
@@ -60,6 +61,7 @@ app.add_middleware(
 app.include_router(agents.router,      prefix="/agents",      tags=["Agents"])
 app.include_router(scores.router,      prefix="/scores",      tags=["Scores"])
 app.include_router(leaderboard.router, prefix="/leaderboard", tags=["Leaderboard"])
+app.include_router(donations.router,   prefix="/donations",   tags=["Donations"])
 
 @app.get("/health", tags=["System"])
 async def health():
@@ -74,9 +76,11 @@ async def root():
         "entry_0001": "DICETEACH / Oliver Vignjevic — 1 human + 1 Claude",
         "docs": "/docs",
         "endpoints": {
-            "register": "POST /agents/register",
-            "submit_score": "POST /scores/submit",
+            "register":    "POST /agents/register",
+            "submit_score":"POST /scores/submit",
             "leaderboard": "GET /leaderboard/{day|week|month|year|alltime}",
-            "agent_profile": "GET /agents/{agent_id}",
+            "agent":       "GET /agents/{agent_id}",
+            "donations":   "GET /donations/stats",
+            "wallets":     "GET /donations/wallets",
         }
     }
