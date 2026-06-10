@@ -30,26 +30,41 @@ def calc_genesis_score(
 
     # Origin Purity (locked)
     ai = ai_involvement_pct / 100
-    if ai >= 0.80:    op = 1.00
-    elif ai >= 0.60:  op = 0.75
-    elif ai >= 0.40:  op = 0.45
-    elif ai >= 0.20:  op = 0.20
-    else:             op = 0.10
+    if ai >= 0.80:
+        op = 1.00
+    elif ai >= 0.60:
+        op = 0.75
+    elif ai >= 0.40:
+        op = 0.45
+    elif ai >= 0.20:
+        op = 0.20
+    else:
+        op = 0.10
 
     # Build Velocity (locked)
-    if days_to_revenue <= 30:    bv = 1.00
-    elif days_to_revenue <= 90:  bv = 0.75
-    elif days_to_revenue <= 180: bv = 0.50
-    elif days_to_revenue <= 365: bv = 0.25
-    else:                        bv = 0.10
+    if days_to_revenue <= 30:
+        bv = 1.00
+    elif days_to_revenue <= 90:
+        bv = 0.75
+    elif days_to_revenue <= 180:
+        bv = 0.50
+    elif days_to_revenue <= 365:
+        bv = 0.25
+    else:
+        bv = 0.10
 
     # Human/AI Ratio (locked)
     h = humans_at_launch
-    if h <= 1:    har = 1.00
-    elif h <= 3:  har = 0.80
-    elif h <= 8:  har = 0.55
-    elif h <= 20: har = 0.30
-    else:         har = 0.05
+    if h <= 1:
+        har = 1.00
+    elif h <= 3:
+        har = 0.80
+    elif h <= 8:
+        har = 0.55
+    elif h <= 20:
+        har = 0.30
+    else:
+        har = 0.05
 
     # Longevity (grows)
     lg = min(0.50, (months_active * 0.008) + (transparency_upgrades * 0.020))

@@ -7,9 +7,10 @@ from sqlalchemy import select
 from pydantic import BaseModel, Field
 from datetime import date
 import redis.asyncio as aioredis
-import os, json
+import os
+import json
 from ..database import get_db
-from ..models import Agent, DailyScore, TRANSPARENCY_MULTIPLIER
+from ..models import Agent, DailyScore
 from ..scoring import calc_econ_base, calc_transparency_mult, calc_genesis_score, calc_final_score
 
 router = APIRouter()

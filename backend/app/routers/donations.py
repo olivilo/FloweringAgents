@@ -5,7 +5,9 @@ Caches in Redis — no API keys needed for basic balance checks
 """
 from fastapi import APIRouter, Depends
 import redis.asyncio as aioredis
-import httpx, os, json
+import httpx
+import os
+import json
 from datetime import datetime, date
 
 router = APIRouter()
@@ -94,9 +96,12 @@ async def refresh_donation_stats(redis) -> dict:
     last_ago = "none yet"
     if all_donors and all_donors[0].get("ts", 0) > 0:
         diff = int(datetime.now().timestamp()) - all_donors[0]["ts"]
-        if diff < 3600:    last_ago = f"{diff//60}m ago"
-        elif diff < 86400: last_ago = f"{diff//3600}h ago"
-        else:              last_ago = f"{diff//86400}d ago"
+        if diff < 3600:
+            last_ago = f"{diff//60}m ago"
+        elif diff < 86400:
+            last_ago = f"{diff//3600}h ago"
+        else:
+            last_ago = f"{diff//86400}d ago"
     stats = {
         "eth_balance":       round(eth_bal, 6),
         "trx_balance":       round(trx_bal, 2),
