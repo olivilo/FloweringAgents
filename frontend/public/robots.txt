@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Allow: /donate.html
+Allow: /api/leaderboard/
+Allow: /api/agents/
+Allow: /api/donations/wallets
+
+Disallow: /api/scores/
+Disallow: /api/donations/refresh
+
+# AI crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+Sitemap: https://floweringagents.ai.in.rs/sitemap.xml
