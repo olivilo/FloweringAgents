@@ -13,6 +13,7 @@ from ..scoring import calc_genesis_score
 
 router = APIRouter()
 
+
 class AgentRegisterRequest(BaseModel):
     agent_name:          str = Field(..., min_length=2, max_length=100)
     public_key:          str = Field(..., min_length=10)
@@ -29,6 +30,7 @@ class AgentRegisterRequest(BaseModel):
     website_url:         Optional[str] = None
     sales_platform:      Optional[str] = None
 
+
 class AgentResponse(BaseModel):
     agent_id:           str
     agent_name:         str
@@ -39,6 +41,7 @@ class AgentResponse(BaseModel):
     transparency_mult:  float
     message:            str
 
+
 @router.post("/register", response_model=AgentResponse)
 async def register_agent(req: AgentRegisterRequest, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(Agent).where(Agent.agent_name == req.agent_name))
@@ -46,6 +49,8 @@ async def register_agent(req: AgentRegisterRequest, db: AsyncSession = Depends(g
         raise HTTPException(status_code=409, detail=f"Agent '{req.agent_name}' already registered")
 
     agent_id = str(uuid.uuid4())
+
+    # Determine transparency level
     t_level = 1  # Named by default (has a name)
     if req.website_url or req.sales_platform:
         t_level = 2  # Verified
@@ -90,18 +95,24 @@ async def register_agent(req: AgentRegisterRequest, db: AsyncSession = Depends(g
         message=f"🌸 Welcome to the garden, {req.agent_name}! Your bloom has begun."
     )
 
+
 @router.get("/")
 async def list_agents(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Agent).where(Agent.is_active == True).limit(100))
+    result = await db.execute(select(Agent).where(Agent.is_active).limit(100))
     agents = result.scalars().all()
     return {
         "agents": [
-            {"agent_id": a.agent_id, "agent_name": a.agent_name,
-             "project_name": a.project_name, "origin_type": a.origin_type}
+            {
+                "agent_id":    a.agent_id,
+                "agent_name":  a.agent_name,
+                "project_name":a.project_name,
+                "origin_type": a.origin_type,
+            }
             for a in agents
         ],
         "total": len(agents)
     }
+
 
 @router.get("/{agent_id}")
 async def get_agent(agent_id: str, db: AsyncSession = Depends(get_db)):
@@ -116,17 +127,17 @@ async def get_agent(agent_id: str, db: AsyncSession = Depends(get_db)):
         months_active=agent.months_active,
     )
     return {
-        "agent_id": agent.agent_id,
-        "agent_name": agent.agent_name,
-        "project_name": agent.project_name,
-        "project_category": agent.project_category,
-        "company_alias": agent.company_alias,
-        "origin_type": agent.origin_type,
-        "infra_type": agent.infra_type,
+        "agent_id":          agent.agent_id,
+        "agent_name":        agent.agent_name,
+        "project_name":      agent.project_name,
+        "project_category":  agent.project_category,
+        "company_alias":     agent.company_alias,
+        "origin_type":       agent.origin_type,
+        "infra_type":        agent.infra_type,
         "human_oversight_pct": agent.human_oversight_pct,
-        "transparency_level": agent.transparency_level,
-        "transparency_mult": TRANSPARENCY_MULTIPLIER[agent.transparency_level],
-        "genesis_multiplier": genesis_mult,
-        "months_active": agent.months_active,
-        "created_at": agent.created_at.isoformat() if agent.created_at else None,
+        "transparency_level":  agent.transparency_level,
+        "transparency_mult":   TRANSPARENCY_MULTIPLIER[agent.transparency_level],
+        "genesis_multiplier":  genesis_mult,
+        "months_active":       agent.months_active,
+        "created_at":          agent.created_at.isoformat() if agent.created_at else None,
     }

@@ -5,10 +5,12 @@ Live rankings from Redis Sorted Sets
 from fastapi import APIRouter, Depends, Query, HTTPException
 from datetime import date, timedelta
 import redis.asyncio as aioredis
-import os, json
+import os
+import json
 
 router = APIRouter()
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+
 
 async def get_redis():
     r = aioredis.from_url(REDIS_URL, decode_responses=True)
@@ -17,17 +19,22 @@ async def get_redis():
     finally:
         await r.aclose()
 
+
 PERIOD_LABELS = {
     "day": "Today", "week": "This Week", "month": "This Month",
     "year": "This Year", "alltime": "All Time"
 }
 GENESIS_LABELS = {
-    "seedling": "🌱 Seedling", "collaborator": "🤝 Collaborator",
-    "accelerator": "⚡ Accelerator", "transformer": "🔄 Transformer",
-    "legacy": "🌊 Legacy Carrier",
+    "seedling":    "🌱 Seedling",
+    "sprout":      "🌿 Sprout",
+    "collaborator":"🤝 Collaborator",
+    "accelerator": "⚡ Accelerator",
+    "transformer": "🔄 Transformer",
+    "legacy":      "🌊 Legacy Carrier",
 }
-TRANSPARENCY_LABELS = {0:"Ghost",1:"Named",2:"Verified",3:"Trusted",4:"Attested"}
-FLOWER_GLYPHS = ["🌸","🌺","🌼","🌻","🌷","🪷","💐","🌹","🏵️","🌾"]
+TRANSPARENCY_LABELS = {0: "Ghost", 1: "Named", 2: "Verified", 3: "Trusted", 4: "Attested"}
+FLOWER_GLYPHS = ["🌸", "🌺", "🌼", "🌻", "🌷", "🪷", "💐", "🌹", "🏵️", "🌾"]
+
 
 async def get_period_key(period: str) -> str:
     today = date.today()
@@ -42,8 +49,9 @@ async def get_period_key(period: str) -> str:
         return f"lb:year:{today.year}"
     return "lb:alltime"
 
+
 @router.get("/")
-async def leaderboard_overview(redis = Depends(get_redis)):
+async def leaderboard_overview(redis=Depends(get_redis)):
     alltime_key = "lb:alltime"
     total_agents = await redis.zcard(alltime_key)
     today = date.today()
@@ -64,11 +72,12 @@ async def leaderboard_overview(redis = Depends(get_redis)):
         "periods": list(PERIOD_LABELS.keys()),
     }
 
+
 @router.get("/{period}")
 async def get_leaderboard(
     period: str,
     limit: int = Query(default=10, le=50),
-    redis = Depends(get_redis)
+    redis=Depends(get_redis),
 ):
     if period not in PERIOD_LABELS:
         raise HTTPException(400, f"Period must be one of: {list(PERIOD_LABELS.keys())}")
@@ -86,24 +95,25 @@ async def get_leaderboard(
         t_level = m.get("transparency_level", 0)
         rows.append({
             "rank": i + 1,
-            "glyph": FLOWER_GLYPHS[i] if i < len(FLOWER_GLYPHS) else str(i+1),
-            "agent_id": m.get("agent_id"),
-            "agent_name": m.get("agent_name"),
-            "project_name": m.get("project_name"),
-            "origin_type": origin,
-            "origin_label": GENESIS_LABELS.get(origin, origin),
-            "transparency_level": t_level,
-            "transparency_label": TRANSPARENCY_LABELS.get(t_level, "Ghost"),
+            "glyph": FLOWER_GLYPHS[i] if i < len(FLOWER_GLYPHS) else str(i + 1),
+            "agent_id":          m.get("agent_id"),
+            "agent_name":        m.get("agent_name"),
+            "project_name":      m.get("project_name"),
+            "origin_type":       origin,
+            "origin_label":      GENESIS_LABELS.get(origin, origin),
+            "transparency_level":t_level,
+            "transparency_label":TRANSPARENCY_LABELS.get(t_level, "Ghost"),
             "transparency_mult": m.get("transparency_mult", 0.15),
-            "genesis_mult": m.get("genesis_mult", 0.14),
-            "human_oversight_pct": m.get("human_oversight_pct", 50),
-            "score": round(score, 2),
+            "genesis_mult":      m.get("genesis_mult", 0.14),
+            "human_oversight_pct":m.get("human_oversight_pct", 50),
+            "score":             round(score, 2),
+            "is_personal_best":  False,
         })
 
     return {
-        "period": period,
+        "period":       period,
         "period_label": PERIOD_LABELS[period],
-        "entries": rows,
-        "total": len(rows),
-        "updated_at": date.today().isoformat(),
+        "entries":      rows,
+        "total":        len(rows),
+        "updated_at":   date.today().isoformat(),
     }
