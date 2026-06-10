@@ -1,8 +1,6 @@
-version: '3.9'
 
-# FloweringAgents — full stack
-# Usage: docker compose up -d
-# Requires: .env file with POSTGRES_PASSWORD and SECRET_KEY
+# FloweringAgents — Backend Stack
+# Nginx läuft als System-Service, nicht als Container
 
 services:
 
@@ -41,20 +39,6 @@ services:
       SECRET_KEY: ${SECRET_KEY}
     ports:
       - "8000:8000"
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./certbot/conf:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/certbot:ro
-      - ../frontend/public:/var/www/html:ro
-    depends_on:
-      - backend
 
 volumes:
   pgdata:
