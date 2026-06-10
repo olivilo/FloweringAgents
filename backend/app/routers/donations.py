@@ -26,15 +26,11 @@ async def get_redis():
 async def fetch_eth_data():
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            # Balance via Etherscan (free tier, no key needed for basic)
             r = await client.get(
                 f"https://api.etherscan.io/api?module=account&action=balance"
                 f"&address={ETH_WALLET}&tag=latest"
             )
-            data = r.json()
-            balance_eth = int(data.get("result", 0)) / 1e18
-
-            # Recent incoming txs
+            balance_eth = int(r.json().get("result", 0)) / 1e18
             r2 = await client.get(
                 f"https://api.etherscan.io/api?module=account&action=txlist"
                 f"&address={ETH_WALLET}&startblock=0&endblock=99999999&sort=desc"
@@ -42,7 +38,6 @@ async def fetch_eth_data():
             txs = r2.json().get("result", [])
             if not isinstance(txs, list):
                 txs = []
-
             donors = []
             for tx in txs[:20]:
                 if tx.get("to","").lower() != ETH_WALLET.lower():
@@ -60,7 +55,7 @@ async def fetch_eth_data():
                     except Exception:
                         pass
                 from_addr = tx.get("from", "")
-                display = f"0x{from_addr[2:8]}…{from_addr[-4:]}" if len(from_addr) > 10 else "anonymous"
+                display = f"0x{from_addr[2:8]}...{from_addr[-4:]}" if len(from_addr) > 10 else "anonymous"
                 donors.append({
                     "chain": "ETH",
                     "display_name": display,
@@ -76,9 +71,7 @@ async def fetch_eth_data():
 async def fetch_trx_data():
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.get(
-                f"https://apilist.tronscan.org/api/account?address={TRX_WALLET}"
-            )
+            r = await client.get(f"https://apilist.tronscan.org/api/account?address={TRX_WALLET}")
             balance_trx = r.json().get("balance", 0) / 1e6
             return balance_trx, []
     except Exception:
@@ -87,11 +80,8 @@ async def fetch_trx_data():
 async def fetch_doge_data():
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.get(
-                f"https://dogechain.info/api/v1/address/balance/{DOGE_WALLET}"
-            )
-            balance = float(r.json().get("balance", 0))
-            return balance, []
+            r = await client.get(f"https://dogechain.info/api/v1/address/balance/{DOGE_WALLET}")
+            return float(r.json().get("balance", 0)), []
     except Exception:
         return 0.0, []
 
@@ -99,17 +89,14 @@ async def refresh_donation_stats(redis) -> dict:
     eth_bal, eth_donors = await fetch_eth_data()
     trx_bal, _          = await fetch_trx_data()
     doge_bal, _         = await fetch_doge_data()
-
     total_usd = (eth_bal * 3200) + (trx_bal * 0.12) + (doge_bal * 0.15)
     all_donors = sorted(eth_donors, key=lambda x: x.get("ts", 0), reverse=True)
-
     last_ago = "none yet"
     if all_donors and all_donors[0].get("ts", 0) > 0:
         diff = int(datetime.now().timestamp()) - all_donors[0]["ts"]
         if diff < 3600:    last_ago = f"{diff//60}m ago"
         elif diff < 86400: last_ago = f"{diff//3600}h ago"
         else:              last_ago = f"{diff//86400}d ago"
-
     stats = {
         "eth_balance":       round(eth_bal, 6),
         "trx_balance":       round(trx_bal, 2),
