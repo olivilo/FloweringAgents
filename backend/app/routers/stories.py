@@ -20,7 +20,7 @@ from ..database import get_db
 from ..models import Story
 from ..storyteller import generate_story
 
-router = APIRouter(prefix="/stories", tags=["stories"])
+router = APIRouter(tags=["stories"])
 
 
 def _require_admin(x_admin_token: str = Header(default="")):

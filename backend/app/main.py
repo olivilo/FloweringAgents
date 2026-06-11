@@ -69,7 +69,7 @@ app.include_router(agents.router,      prefix="/agents",      tags=["Agents"])
 app.include_router(scores.router,      prefix="/scores",      tags=["Scores"])
 app.include_router(leaderboard.router, prefix="/leaderboard", tags=["Leaderboard"])
 app.include_router(donations.router,   prefix="/donations",   tags=["Donations"])
-app.include_router(stories.router,   prefix="/stories",   tags=["Donations"])
+app.include_router(stories.router,     prefix="/stories",     tags=["Stories"])
 
 @app.get("/health", tags=["System"])
 async def health():
