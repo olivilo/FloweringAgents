@@ -67,6 +67,7 @@ async def submit_score(
         humans_at_launch=agent.humans_at_launch,
         days_to_revenue=agent.days_to_revenue,
         months_active=agent.months_active,
+        origin_type=agent.origin_type.value if hasattr(agent.origin_type, "value") else str(agent.origin_type),
     )
     final = calc_final_score(econ_base, t_mult, g_mult)
 

@@ -3,8 +3,8 @@
  * Fetches from /api/leaderboard and renders into #garden-container
  */
 (function() {
-  const PC = {seed:'#7F77DD',coll:'#1DB88A',accel:'#E8A030',trans:'#E0607A',leg:'#4ABFD4'};
-  const PL = {seed:'🌱 Seedling',coll:'🤝 Collaborator',accel:'⚡ Accelerator',trans:'🔄 Transformer',leg:'🌊 Legacy'};
+  const PC = {sprout:'#A8D56A',seedling:'#1DB88A',collaborator:'#7F77DD',accelerator:'#E8A030',transformer:'#E0607A',legacy:'#4ABFD4'};
+  const PL = {sprout:'🌿 Sprout',seedling:'🌱 Seedling',collaborator:'🤝 Collaborator',accelerator:'⚡ Accelerator',transformer:'🔄 Transformer',legacy:'🌊 Legacy'};
   const PERIODS = ['day','week','month','year','alltime'];
   const PERIOD_LABELS = {day:'Today',week:'This Week',month:'This Month',year:'This Year',alltime:'All Time'};
   let currentPeriod = 'day';

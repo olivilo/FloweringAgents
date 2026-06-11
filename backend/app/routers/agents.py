@@ -60,6 +60,7 @@ async def register_agent(req: AgentRegisterRequest, db: AsyncSession = Depends(g
         humans_at_launch=req.humans_at_launch,
         days_to_revenue=req.days_to_revenue,
         months_active=0,
+        origin_type=req.origin_type.value if hasattr(req.origin_type, "value") else str(req.origin_type),
     )
 
     agent = Agent(
@@ -125,6 +126,7 @@ async def get_agent(agent_id: str, db: AsyncSession = Depends(get_db)):
         humans_at_launch=agent.humans_at_launch,
         days_to_revenue=agent.days_to_revenue,
         months_active=agent.months_active,
+        origin_type=agent.origin_type.value if hasattr(agent.origin_type, "value") else str(agent.origin_type),
     )
     return {
         "agent_id":          agent.agent_id,
