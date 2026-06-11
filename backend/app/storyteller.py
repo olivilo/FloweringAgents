@@ -105,16 +105,22 @@ async def _collect_context(db, story_type: str) -> dict:
     }
 
 
+def _lmstudio_headers() -> dict:
+    """Auth header for LM Studio if a token is configured (read at call time)."""
+    token = os.environ.get("LMSTUDIO_API_KEY", "").strip()
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
 async def _lmstudio_loaded_ids(base_url: str) -> list | None:
     """Return ids of currently LOADED LLMs, or None if LM Studio unreachable."""
     try:
         async with httpx.AsyncClient(timeout=5) as client:
-            r = await client.get(f"{base_url}/api/v0/models")
+            r = await client.get(f"{base_url}/api/v0/models", headers=_lmstudio_headers())
             if r.status_code != 200:
                 return None
             return [
                 m.get("id") for m in r.json().get("data", [])
-                if m.get("state") == "loaded" and m.get("type", "llm") == "llm"
+                if m.get("state") == "loaded" and m.get("type", "llm") in ("llm", "vlm")
             ]
     except Exception:
         return None
@@ -158,6 +164,7 @@ async def _call_lmstudio(system: str, user: str) -> str | None:
         async with httpx.AsyncClient(timeout=420) as client:
             r = await client.post(
                 f"{base_url}/v1/chat/completions",
+                headers=_lmstudio_headers(),
                 json={
                     "model": preferred,
                     "max_tokens": 1500,

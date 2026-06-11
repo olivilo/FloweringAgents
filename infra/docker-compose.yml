@@ -41,6 +41,7 @@ services:
       ADMIN_TOKEN: ${ADMIN_TOKEN}
       LMSTUDIO_URL: ${LMSTUDIO_URL}
       LMSTUDIO_MODEL: ${LMSTUDIO_MODEL}
+      LMSTUDIO_API_KEY: ${LMSTUDIO_API_KEY}
     ports:
       - "8000:8000"
 

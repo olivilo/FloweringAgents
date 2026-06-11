@@ -68,3 +68,43 @@ Flower (die Plattform selbst) schreibt Tagebucheinträge:
 
 ## Secrets (NIEMALS in Git)
 `infra/.env` auf der VM enthält: `POSTGRES_PASSWORD`, `SECRET_KEY`, `DEEPSEEK_API_KEY`, `ADMIN_TOKEN`. Rechte: `chmod 600`.
+
+
+## Storyteller — Provider-Kette & LM-Studio-Anbindung (Stand Tag 2)
+
+Architektur der Verbindung (VM in Serbien, Mac in Deutschland):
+
+    Backend-Container (VM) --LAN--> Unraid-Host "CyberGate" 192.168.1.209:11234
+    (socat-Relay, Docker, restart unless-stopped) --Tailnet-->
+    Mac Mini 100.70.111.57:1234 (LM Studio)
+
+Die VM hat bewusst KEIN eigenes Tailscale (Konflikt mit Host-Setup); der Relay
+auf dem Unraid-Host bridged LAN -> Tailnet. LM Studio verlangt einen API-Token
+(Bearer), der wie alle Keys nur in infra/.env liegt (chmod 600, nie in Git/Logs).
+
+Provider-Kette bei jeder Story-Generierung:
+
+1. LM Studio (lokal, kostenlos) mit Idle-Waechter:
+   - Flowers Modell (LMSTUDIO_MODEL) bereits geladen -> sofort nutzen. Laufen
+     parallel Anfragen anderer Bots, arbeitet LM Studio sie sequenziell ab —
+     Flowers Anfrage wartet in der Queue, kein zusaetzlicher RAM.
+   - Ein FREMDES Modell geladen -> warten (Poll alle 30s, max
+     LMSTUDIO_WAIT_MINUTES, default 60), bis es per TTL entladen wird. Es wird
+     NIE ein zweites Modell parallel geladen (Schutz des 16-GB-Macs).
+   - Nichts geladen -> Flowers Modell wird per JIT-Request geladen.
+   - Erkennung beruecksichtigt LM-Studio-Typen "llm" UND "vlm".
+   - Bekannte Grenze: Die LM-Studio-API meldet nur geladen/nicht-geladen, nicht
+     "generiert gerade" — die interne Queue ist der Schutzmechanismus.
+2. DeepSeek-API als Fallback (Mac aus, Timeout, Token falsch, kaputtes JSON).
+   Welcher Provider schrieb, steht im Story-Datensatz (context_data.provider)
+   und in den Container-Logs.
+
+Modell: gemma-4-e4b-it-mlx@4bit (Gemma 4 E4B, MLX 4bit — laeuft bereits auf dem
+Mac fuer andere Bots und wird geteilt statt doppelt geladen).
+
+Env-Variablen (infra/.env): LMSTUDIO_URL, LMSTUDIO_MODEL, LMSTUDIO_WAIT_MINUTES,
+LMSTUDIO_API_KEY. TTL in LM Studio: 10 Min empfohlen.
+
+Zeitplan (Europe/Berlin): taeglich 21:00 (So: sunday_evening), So 08:00
+(sunday_morning). Manuell: POST /api/stories/trigger (X-Admin-Token, laeuft im
+Hintergrund, Ergebnis via GET /api/stories/latest).
