@@ -12,7 +12,7 @@ import os
 import secrets
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,15 +66,29 @@ async def get_story(story_id: UUID, db: AsyncSession = Depends(get_db)):
     return _fmt(story)
 
 
+async def _generate_in_background(story_type: str):
+    from ..database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        try:
+            await generate_story(db, story_type)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(
+                f"Background story failed ({story_type}): {type(e).__name__}")
+
+
 @router.post("/trigger", dependencies=[Depends(_require_admin)])
 async def trigger_story(
+    background_tasks: BackgroundTasks,
     story_type: str = "evening",
-    db: AsyncSession = Depends(get_db),
 ):
     if story_type not in ("evening", "sunday_morning", "sunday_evening"):
         raise HTTPException(400, "story_type must be evening, sunday_morning, or sunday_evening")
-    story = await generate_story(db, story_type)
-    return {**_fmt(story), "message": "Story generated"}
+    background_tasks.add_task(_generate_in_background, story_type)
+    return {
+        "message": "Story generation started in background",
+        "hint": "Check /api/stories/latest in a few minutes",
+    }
 
 
 def _fmt(s: Story) -> dict:
