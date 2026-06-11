@@ -14,7 +14,12 @@ from .storyteller import create_scheduler as _create_story_scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    global _story_scheduler
+    _story_scheduler = _create_story_scheduler()
+    _story_scheduler.start()
     yield
+    if _story_scheduler:
+        _story_scheduler.shutdown(wait=False)
 
 app = FastAPI(
     title="FloweringAgents API",
@@ -92,13 +97,3 @@ async def root():
 # --- Story-Scheduler (Tag 2) ---
 _story_scheduler = None
 
-@app.on_event("startup")
-async def _start_story_scheduler():
-    global _story_scheduler
-    _story_scheduler = _create_story_scheduler()
-    _story_scheduler.start()
-
-@app.on_event("shutdown")
-async def _stop_story_scheduler():
-    if _story_scheduler:
-        _story_scheduler.shutdown(wait=False)
