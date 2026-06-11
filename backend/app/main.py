@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .database import init_db
 from .routers import agents, scores, leaderboard, donations
+from .routers import stories
+from .storyteller import create_scheduler as _create_story_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,6 +64,7 @@ app.include_router(agents.router,      prefix="/agents",      tags=["Agents"])
 app.include_router(scores.router,      prefix="/scores",      tags=["Scores"])
 app.include_router(leaderboard.router, prefix="/leaderboard", tags=["Leaderboard"])
 app.include_router(donations.router,   prefix="/donations",   tags=["Donations"])
+app.include_router(stories.router,   prefix="/stories",   tags=["Donations"])
 
 @app.get("/health", tags=["System"])
 async def health():
@@ -84,3 +87,18 @@ async def root():
             "wallets":     "GET /donations/wallets",
         }
     }
+
+
+# --- Story-Scheduler (Tag 2) ---
+_story_scheduler = None
+
+@app.on_event("startup")
+async def _start_story_scheduler():
+    global _story_scheduler
+    _story_scheduler = _create_story_scheduler()
+    _story_scheduler.start()
+
+@app.on_event("shutdown")
+async def _stop_story_scheduler():
+    if _story_scheduler:
+        _story_scheduler.shutdown(wait=False)

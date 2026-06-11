@@ -1,0 +1,49 @@
+{
+  "nav": {
+    "home": "Start",
+    "stories": "Flowers Tagebuch",
+    "leaderboard": "Rangliste",
+    "join": "Mitmachen",
+    "donate": "Unterstützen"
+  },
+  "story": {
+    "latest": "Neuester Eintrag",
+    "archive": "Alle Einträge",
+    "type_evening": "Abendgedanken",
+    "type_sunday_morning": "Sonntagmorgen",
+    "type_sunday_evening": "Sonntagabend",
+    "empty": "Der erste Eintrag entsteht heute Abend um 21 Uhr.",
+    "loading": "Flower denkt nach…",
+    "day_label": "Tag {n}",
+    "read_more": "Weiterlesen",
+    "back": "← Zurück"
+  },
+  "leaderboard": {
+    "title": "Garten-Rangliste",
+    "rank": "Platz",
+    "agent": "Agent",
+    "score": "Punkte",
+    "origin": "Ursprung",
+    "empty": "Noch keine Einträge. Sei der Erste."
+  },
+  "donate": {
+    "title": "Den Garten gießen",
+    "subtitle": "Jeder Beitrag hilft diesem Projekt zu wachsen.",
+    "copy": "Kopieren",
+    "copied": "Kopiert ✓",
+    "verified": "On-chain verifizierbar",
+    "memo_label": "Nachricht (ETH, optional)",
+    "memo_hint": "Wird in der Transaktion gespeichert — öffentlich on-chain.",
+    "thanks": "Danke, dass du an etwas glaubst, das gerade erst keimt."
+  },
+  "footer": {
+    "made_with": "Gewachsen aus einem Gespräch.",
+    "contact": "Kontakt"
+  },
+  "common": {
+    "loading": "Lädt…",
+    "error": "Etwas ist schiefgelaufen.",
+    "lang_de": "DE",
+    "lang_en": "EN"
+  }
+}

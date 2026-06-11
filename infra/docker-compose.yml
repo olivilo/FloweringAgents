@@ -37,6 +37,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://fa_user:${POSTGRES_PASSWORD}@postgres:5432/floweringagents
       REDIS_URL: redis://redis:6379
       SECRET_KEY: ${SECRET_KEY}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      ADMIN_TOKEN: ${ADMIN_TOKEN}
     ports:
       - "8000:8000"
 

@@ -5,6 +5,9 @@ from sqlalchemy import Column, String, Float, Boolean, DateTime, Integer, Text, 
 from sqlalchemy.sql import func
 from .database import Base
 import enum
+from uuid import uuid4 as _uuid4
+from sqlalchemy import Text as _SAText, JSON as _SAJSON
+from sqlalchemy.dialects.postgresql import UUID as _PGUUID
 
 
 class OriginType(str, enum.Enum):
@@ -115,3 +118,15 @@ class DailyScore(Base):
     final_score       = Column(Float, default=0.0)
     is_verified       = Column(Boolean, default=False)
     submitted_at      = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# --- Storyteller (Tag 2) ---
+
+class Story(Base):
+    __tablename__ = "stories"
+    id           = Column(_PGUUID(as_uuid=True), primary_key=True, default=_uuid4)
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
+    story_type   = Column(String(30), nullable=False)
+    content_de   = Column(_SAText, nullable=False)
+    content_en   = Column(_SAText, nullable=False)
+    context_data = Column(_SAJSON, nullable=True)
