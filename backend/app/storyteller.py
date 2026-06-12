@@ -78,7 +78,7 @@ async def _collect_context(db, story_type: str) -> dict:
     )).scalar() or 0
 
     scores_today = (await db.execute(
-        select(func.count(DailyScore.id)).where(DailyScore.score_date == today)
+        select(func.count(DailyScore.id)).where(DailyScore.score_date == today.isoformat())
     )).scalar() or 0
 
     total_agents = (await db.execute(select(func.count(Agent.agent_id)))).scalar() or 0
@@ -86,7 +86,7 @@ async def _collect_context(db, story_type: str) -> dict:
     top_row = (await db.execute(
         select(Agent.agent_name, DailyScore.final_score)
         .join(DailyScore, Agent.agent_id == DailyScore.agent_id)
-        .where(DailyScore.score_date == today)
+        .where(DailyScore.score_date == today.isoformat())
         .order_by(DailyScore.final_score.desc())
         .limit(1)
     )).first()
