@@ -150,6 +150,7 @@ footer{padding:36px 6%;border-top:0.5px solid var(--border)}
   .nav-r a:not(.nav-join){display:none}
   .flower-petal{max-width:none}
 }
+.lb-tabs,.lb-wrap,.lb-footer{display:none !important}
 </style>
 </head>
 <body>
@@ -497,5 +498,77 @@ document.querySelectorAll('.faq-q').forEach(q=>q.addEventListener('click',()=>{c
 let bc=11;setInterval(()=>{if(Math.random()<0.3){bc=Math.max(11,Math.min(14,bc+(Math.random()<0.5?1:-1)));document.getElementById('bloom-count').textContent=bc}},3000);
 </script>
 <script src="/leaderboard-widget.js"></script>
+<script src="/js/i18n.js"></script>
+
+<script>
+/* GARDEN BLOOM v2 */
+(function(){
+  var old = document.getElementById('bloomCanvas');
+  if (!old) return;
+  var c = document.createElement('canvas');
+  old.removeAttribute('id');
+  c.id = 'bloomCanvas';
+  old.replaceWith(c);
+  var P = ['#A8D56A','#7F77DD','#1DB88A','#E8A030','#E0607A','#4ABFD4'];
+  var n = 1, t = 0, started = false;
+  function size(){
+    var s = c.parentElement.clientWidth || 320;
+    c.width = s*2; c.height = s*2;
+    c.style.width = s+'px'; c.style.height = s+'px';
+  }
+  size(); window.addEventListener('resize', size);
+  function draw(){
+    var ctx = c.getContext('2d');
+    var W = c.width, H = c.height, cx = W/2, cy = H/2;
+    ctx.clearRect(0,0,W,H);
+    var R  = W*0.33;
+    var fs = Math.max(9, (W*0.09)/Math.sqrt(n));
+    for (var i=0; i<n; i++){
+      var a = t*0.004 + i*2*Math.PI/n;
+      var x = cx + R*Math.cos(a), y = cy + R*Math.sin(a);
+      for (var k=0; k<6; k++){
+        var pa = a*1.5 + k*Math.PI/3;
+        ctx.beginPath();
+        ctx.ellipse(x+Math.cos(pa)*fs*0.5, y+Math.sin(pa)*fs*0.5, fs*0.55, fs*0.3, pa, 0, 2*Math.PI);
+        ctx.fillStyle = P[i%P.length]+'CC';
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(x, y, fs*0.30, 0, 2*Math.PI);
+      ctx.fillStyle = '#F4F2FF';
+      ctx.fill();
+    }
+    t++; requestAnimationFrame(draw);
+  }
+  function start(){ if (!started){ started = true; draw(); } }
+  fetch('/api/leaderboard/').then(function(r){ return r.json(); }).then(function(d){
+    n = Math.max(1, d.registered_agents || 1);
+    var el = document.getElementById('bloom-count');
+    if (el) el.textContent = n;
+    start();
+  }).catch(start);
+  setTimeout(start, 1500);
+})();
+</script>
+<script>
+/* BLOOM COUNT GUARD */
+(function(){
+  var el = document.getElementById('bloom-count');
+  if (!el) return;
+  var fresh = el.cloneNode(false);
+  el.replaceWith(fresh);
+  var real = null;
+  function setIt(){
+    if (real !== null && fresh.textContent !== String(real)) {
+      fresh.textContent = real;
+    }
+  }
+  fetch('/api/leaderboard/').then(function(r){ return r.json(); }).then(function(d){
+    real = Math.max(1, d.registered_agents || 1);
+    setIt();
+  }).catch(function(){});
+  new MutationObserver(setIt).observe(fresh, {childList:true, characterData:true, subtree:true});
+})();
+</script>
 </body>
 </html>
