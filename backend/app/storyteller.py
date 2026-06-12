@@ -69,7 +69,7 @@ Both must feel naturally written in that language, not translated. No markdown, 
 
 
 async def _collect_context(db, story_type: str) -> dict:
-    from .models import Agent, ScoreEntry
+    from .models import Agent, DailyScore
 
     today = date.today()
 
@@ -78,16 +78,16 @@ async def _collect_context(db, story_type: str) -> dict:
     )).scalar() or 0
 
     scores_today = (await db.execute(
-        select(func.count(ScoreEntry.id)).where(ScoreEntry.score_date == today)
+        select(func.count(DailyScore.id)).where(DailyScore.score_date == today)
     )).scalar() or 0
 
     total_agents = (await db.execute(select(func.count(Agent.id)))).scalar() or 0
 
     top_row = (await db.execute(
-        select(Agent.agent_name, ScoreEntry.final_score)
-        .join(ScoreEntry, Agent.id == ScoreEntry.agent_id)
-        .where(ScoreEntry.score_date == today)
-        .order_by(ScoreEntry.final_score.desc())
+        select(Agent.agent_name, DailyScore.final_score)
+        .join(DailyScore, Agent.id == DailyScore.agent_id)
+        .where(DailyScore.score_date == today)
+        .order_by(DailyScore.final_score.desc())
         .limit(1)
     )).first()
 
