@@ -1,18 +1,15 @@
 """
-Stories API — public read, admin-only trigger.
-
-SECURITY:
-- GET endpoints are public (stories are public content)
-- POST /trigger requires X-Admin-Token header matching ADMIN_TOKEN env var.
-  Comparison uses secrets.compare_digest (timing-attack safe).
-  Without ADMIN_TOKEN configured, trigger is disabled entirely (fail closed).
+Stories API — public read, admin-only trigger, RSS feed.
 """
 
 import os
 import secrets
 from uuid import UUID
+from datetime import timezone
+from email.utils import format_datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,11 +19,12 @@ from ..storyteller import generate_story
 
 router = APIRouter(tags=["stories"])
 
+BASE_URL = "https://floweringagents.ai.in.rs"
+
 
 def _require_admin(x_admin_token: str = Header(default="")):
     expected = os.environ.get("ADMIN_TOKEN", "")
     if not expected:
-        # Fail closed: no token configured -> endpoint disabled
         raise HTTPException(503, "Trigger endpoint not configured")
     if not secrets.compare_digest(x_admin_token, expected):
         raise HTTPException(403, "Forbidden")
@@ -55,6 +53,83 @@ async def list_stories(
         select(Story).order_by(Story.created_at.desc()).limit(limit).offset(offset)
     )
     return [_fmt(s) for s in result.scalars().all()]
+
+
+@router.get("/rss.xml", response_class=Response)
+async def rss_feed(lang: str = "en", db: AsyncSession = Depends(get_db)):
+    """
+    RSS 2.0 feed for Flower's Garden Diary.
+    ?lang=en  (default) — English entries
+    ?lang=de            — German entries
+    """
+    lang = lang if lang in ("en", "de") else "en"
+
+    result = await db.execute(
+        select(Story).order_by(Story.created_at.desc()).limit(20)
+    )
+    stories = result.scalars().all()
+
+    lang_label = "EN" if lang == "en" else "DE"
+    feed_url = f"{BASE_URL}/api/stories/rss.xml?lang={lang}"
+    story_page = f"{BASE_URL}/story.html"
+
+    def esc(s: str) -> str:
+        return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    def rfc822(dt) -> str:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return format_datetime(dt)
+
+    items = []
+    for s in stories:
+        content = s.content_en if lang == "en" else s.content_de
+        content = content or ""
+        # first ~160 chars as description
+        desc = content[:160].replace("\n", " ").strip()
+        if len(content) > 160:
+            desc += "…"
+        # full content as paragraphs
+        full = "".join(f"<p>{esc(p.strip())}</p>" for p in content.split("\n") if p.strip())
+        pub = rfc822(s.created_at)
+        link = f"{story_page}?entry={s.id}"
+        type_label = (s.story_type or "evening").replace("_", " ").title()
+        items.append(f"""    <item>
+      <title>{esc(type_label)} · {esc(s.created_at.strftime("%d %b %Y"))}</title>
+      <link>{link}</link>
+      <guid isPermaLink="true">{link}</guid>
+      <pubDate>{pub}</pubDate>
+      <description>{esc(desc)}</description>
+      <content:encoded><![CDATA[{full}]]></content:encoded>
+    </item>""")
+
+    last_build = rfc822(stories[0].created_at) if stories else "Mon, 01 Jan 2026 00:00:00 +0000"
+
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Flower's Garden Diary [{lang_label}] — FloweringAgents</title>
+    <link>{story_page}</link>
+    <description>Daily reflections by Flower (Entry #0002), the autonomous storyteller agent of FloweringAgents. Written every evening in German and English.</description>
+    <language>{lang}-{'DE' if lang == 'de' else 'EN'}</language>
+    <lastBuildDate>{last_build}</lastBuildDate>
+    <atom:link href="{feed_url}" rel="self" type="application/rss+xml"/>
+    <image>
+      <url>{BASE_URL}/favicon.ico</url>
+      <title>FloweringAgents</title>
+      <link>{BASE_URL}</link>
+    </image>
+{chr(10).join(items)}
+  </channel>
+</rss>"""
+
+    return Response(
+        content=xml,
+        media_type="application/rss+xml; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=1800"},
+    )
 
 
 @router.get("/{story_id}")
@@ -98,5 +173,4 @@ def _fmt(s: Story) -> dict:
         "created_at": s.created_at.isoformat(),
         "content_de": s.content_de,
         "content_en": s.content_en,
-        # context_data intentionally NOT exposed — internal only
     }
