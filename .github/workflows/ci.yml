@@ -32,18 +32,18 @@ jobs:
         run: |
           pip-audit -r backend/requirements.txt --output json \
             | python3 -c "
-import json,sys
-data=json.load(sys.stdin)
-vulns=data.get('dependencies',[])
-found=[v for v in vulns if v.get('vulns')]
-if found:
-    print('VULNERABILITIES FOUND:')
-    for d in found:
-        print(f\"  {d['name']}=={d['version']}: {[v['id'] for v in d['vulns']]}\")
-    sys.exit(1)
-else:
-    print(f'All {len(vulns)} dependencies clean.')
-"
+          import json,sys
+          data=json.load(sys.stdin)
+          vulns=data.get('dependencies',[])
+          found=[v for v in vulns if v.get('vulns')]
+          if found:
+              print('VULNERABILITIES FOUND:')
+              for d in found:
+                  print(f\"  {d['name']}=={d['version']}: {[v['id'] for v in d['vulns']]}\")
+              sys.exit(1)
+          else:
+              print(f'All {len(vulns)} dependencies clean.')
+          "
 
   validate-pages:
     name: Check all pages exist
