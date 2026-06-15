@@ -1,7 +1,23 @@
 # 🗺️ FloweringAgents — Roadmap & TODOs
-**Stand: 15. Juni 2026 (Tag 5)**
+**Stand: 15. Juni 2026 (Tag 5, Abend)**
 
-## ✅ Erledigt in Tag 5
+## ✅ Erledigt in Tag 5 (Teil 2 — Abends)
+
+### Bugfixes
+- [x] **garden.html** — Default-Tab "Today" → "All time" (Today/Week waren fast immer leer → Seite wirkte leer)
+- [x] **Chain-Checker (donations.py)** — ETH lief über Etherscan V1 (seit Aug 2025 abgeschaltet, lieferte immer 0), DOGE über dogechain.info (jetzt hinter Cloudflare-Bot-Check, lieferte immer 0). Umgestellt auf Ethplorer ("freekey") bzw. BlockCypher — beide ohne API-Key, verifiziert mit echten Werten (ETH-Balance 0.000046 ETH, 2 historische Spender)
+- [x] **CoinGecko Live-Kurse** — `_get_prices()` jetzt auch in `donations.py` (war vorher nur in `maintenance.py` geplant), ETH/TRX/DOGE-Preise live statt hardcoded $3200/0.12/0.15
+- [x] **Monatlicher Maintenance-Lauf** — `misfire_grace_time=23h` ergänzt, damit ein Redeploy nach 06:00 am 15. den Lauf nicht auf den nächsten Monat verschiebt. Neuer Admin-Endpoint `POST /maintenance/trigger` zum manuellen Nachholen. Juni-Lauf nachgeholt (lief durch, $0 zu buchen da alle Wallet-Tx vor Deploy-Datum 10.06. liegen)
+- [x] **307-Redirect-Bug** — `/api/agents`, `/api/leaderboard`, `/api/scores` (ohne trailing slash) gaben kaputten `Location: http://...`-Redirect ohne `/api`-Prefix zurück → `redirect_slashes=False`
+
+### Sicherheit (komplett abgeschlossen)
+- [x] **SSH Key-only Auth** — `PasswordAuthentication no` auf VM, verifiziert (Key-Login geht, Passwort-Login wird abgelehnt). Root-Login war schon `prohibit-password`
+- [x] **fail2ban** — war bereits installiert & aktiv mit `sshd`-Jail (Debian-Defaults: 5 Versuche → 10 Min Ban)
+- [x] **GitHub-PAT entfernt** — VM-Remote von HTTPS+PAT auf SSH mit read-only Deploy-Key umgestellt, altes Token auf GitHub gelöscht
+
+Alle Änderungen lokal smoke-getestet (venv + TestClient), gepusht (Commit `2bd8e1d`), auf VM deployed & live verifiziert.
+
+## ✅ Erledigt in Tag 5 (Teil 1 — Vormittags)
 
 ### Regression-Fix (Tag 4 hatte Diary-Crash riskiert)
 - [x] **models.py** — `agent_id` (PK), `months_active`, `first_commit_date` wiederhergestellt; `status`/`genesis_mult` additiv behalten; tote `ScoreEntry`-Tabelle entfernt
@@ -53,24 +69,10 @@ Alle Punkte per Smoke-Tests (SQLite) + `ruff check` verifiziert, nach `origin/ma
 
 ## 🔥 Noch offen (Priorität HOCH)
 
-### Sicherheit
-- [ ] **SSH Key-only Auth** — Passwort-Login auf VM deaktivieren
-  ```bash
-  sudo nano /etc/ssh/sshd_config
-  # PasswordAuthentication no
-  sudo systemctl restart sshd
-  ```
-- [ ] **fail2ban** installieren und konfigurieren
-  ```bash
-  sudo apt install fail2ban
-  sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-  sudo systemctl enable fail2ban && sudo systemctl start fail2ban
-  ```
-- [ ] **GitHub-PAT aus VM-Git-Remote entfernen** — `origin` nutzt aktuell einen Personal Access Token in der Remote-URL (`.git/config` auf der VM). Auf Deploy-Key oder SSH-Remote umstellen, Token danach auf GitHub rotieren.
+_Keine offenen High-Priority-Items mehr — alle Sicherheits- und Bugfix-Punkte aus Tag 5 sind erledigt._
 
 ## 🌱 Mittel (nächste 2 Wochen)
 
-- [ ] **CoinGecko Live-Kurse** auf donate.html (ETH hardcoded $3200)
 - [ ] **Donation-Stats → Storyteller-Kontext** (Flower freut sich über "Regen")
 - [ ] **ETH-Memo Matching** — Phase 2: Reactivation per agent_id im ETH-Memo-Feld
 

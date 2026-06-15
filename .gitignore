@@ -10,6 +10,7 @@ venv/
 *.pem
 *.key
 secrets/
+.backups/
 
 # Node
 node_modules/
