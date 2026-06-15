@@ -21,7 +21,7 @@ Browser ── Cloudflare (SSL/CDN) ── Nginx (VM, Port 80)
                                                     └── DeepSeek API / LM Studio (Storyteller, ausgehend)
 ```
 
-**Infrastruktur:** Ubuntu 26.04 VM (192.168.1.57), erreichbar via SSH-Jump über 100.86.145.54. Entwicklung lokal auf Mac Mini (`/Volumes/M4Data/Coding/FloweringAgents`), Deployment via git push → VM git pull → `sudo cp` für Statics → `docker compose up -d --build` für Backend.
+**Infrastruktur:** Ubuntu-VM bei einem externen Hoster (Docker-basiert; Zugangsdaten/IPs bewusst nicht im Repo). Entwicklung lokal auf Mac Mini (`/Volumes/M4Data/Coding/FloweringAgents`), Deployment via git push → VM git pull → `sudo cp` für Statics → `docker compose up -d --build` für Backend.
 
 ## Komponenten
 
@@ -105,17 +105,12 @@ Flower (die Plattform selbst) schreibt Tagebucheinträge:
 `infra/.env` auf der VM enthält: `POSTGRES_PASSWORD`, `SECRET_KEY`, `DEEPSEEK_API_KEY`, `ADMIN_TOKEN`. Rechte: `chmod 600`.
 
 
-## Storyteller — Provider-Kette & LM-Studio-Anbindung (Stand Tag 2)
+## Storyteller — Provider-Kette & LM-Studio-Anbindung
 
-Architektur der Verbindung (VM in Serbien, Mac in Deutschland):
-
-    Backend-Container (VM) --LAN--> Unraid-Host "CyberGate" 192.168.1.209:11234
-    (socat-Relay, Docker, restart unless-stopped) --Tailnet-->
-    Mac Mini 100.70.111.57:1234 (LM Studio)
-
-Die VM hat bewusst KEIN eigenes Tailscale (Konflikt mit Host-Setup); der Relay
-auf dem Unraid-Host bridged LAN -> Tailnet. LM Studio verlangt einen API-Token
-(Bearer), der wie alle Keys nur in infra/.env liegt (chmod 600, nie in Git/Logs).
+Die Backend-VM erreicht ein lokal laufendes LM Studio über ein privates
+Relay-Netz (Details zu Hosts/IPs/Topologie bewusst nicht im Repo). LM Studio
+verlangt einen API-Token (Bearer), der wie alle Keys nur in infra/.env liegt
+(chmod 600, nie in Git/Logs).
 
 Provider-Kette bei jeder Story-Generierung:
 

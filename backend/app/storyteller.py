@@ -2,7 +2,7 @@
 Flower's voice — generates diary entries based on platform events.
 
 PROVIDER CHAIN:
-  1. LM Studio on the local Mac (LMSTUDIO_URL, e.g. http://192.168.1.209:1234)
+  1. LM Studio on the local Mac (LMSTUDIO_URL, configured via env var)
      Idle-aware loading policy (protects the 16GB Mac):
        a) preferred model (LMSTUDIO_MODEL) already loaded -> use it
        b) a DIFFERENT model is loaded (another bot may be using it) ->

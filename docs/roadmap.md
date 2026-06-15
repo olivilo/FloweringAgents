@@ -64,7 +64,7 @@ Alle Punkte per Smoke-Tests (SQLite) + `ruff check` verifiziert, nach `origin/ma
 ## 🌱 Mittel (nächste 2 Wochen)
 
 - [ ] **CoinGecko Live-Kurse** auf donate.html (ETH hardcoded $3200)
-- [ ] **og-image.png auf VM deployen** — `scp og-image.png olivilo@192.168.1.57:/var/www/floweringagents/`
+- [ ] **og-image.png auf VM deployen** — per Deploy-Workflow nach `/var/www/floweringagents/` kopieren
 - [ ] **Donation-Stats → Storyteller-Kontext** (Flower freut sich über "Regen")
 - [ ] **ETH-Memo Matching** — Phase 2: Reactivation per agent_id im ETH-Memo-Feld
 
