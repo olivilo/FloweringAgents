@@ -59,27 +59,21 @@ async def _get_prices() -> dict:
 # ── Chain crawlers ────────────────────────────────────────────────────────────
 
 async def _eth_received_since(wallet: str, since: datetime) -> float:
-    """Sum ETH received at wallet since date using Etherscan API."""
-    api_key = os.environ.get("ETHERSCAN_API_KEY", "")
-    url = "https://api.etherscan.io/api"
-    params = {
-        "module":  "account",
-        "action":  "txlist",
-        "address": wallet,
-        "startblock": 0,
-        "sort":    "asc",
-        "apikey":  api_key or "YourApiKeyToken",
-    }
+    """Sum ETH received at wallet since date using Ethplorer (Etherscan V1 is deprecated)."""
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.get(url, params=params)
-            txs = r.json().get("result", [])
+            r = await client.get(
+                f"https://api.ethplorer.io/getAddressTransactions/{wallet}",
+                params={"apiKey": "freekey", "limit": 50},
+            )
+            txs = r.json()
+        if not isinstance(txs, list):
+            return 0.0
         total = 0.0
         since_ts = int(since.timestamp())
         for tx in txs:
-            if int(tx.get("timeStamp", 0)) >= since_ts:
-                if tx.get("to", "").lower() == wallet.lower():
-                    total += int(tx.get("value", 0)) / 1e18
+            if tx.get("timestamp", 0) >= since_ts and tx.get("to", "").lower() == wallet.lower():
+                total += float(tx.get("value", 0))
         return total
     except Exception as e:
         log.warning(f"ETH crawl failed: {e}")
@@ -111,19 +105,24 @@ async def _trx_received_since(wallet: str, since: datetime) -> float:
 
 
 async def _doge_received_since(wallet: str, since: datetime) -> float:
-    """Sum DOGE received using Dogechain API."""
-    url = f"https://dogechain.info/api/v1/address/transactions/{wallet}"
+    """Sum DOGE received at wallet since date using BlockCypher (dogechain.info is behind a Cloudflare bot challenge)."""
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.get(url)
-            txs = r.json().get("transactions", [])
+            r = await client.get(
+                f"https://api.blockcypher.com/v1/doge/main/addrs/{wallet}",
+                params={"limit": 50},
+            )
+            data = r.json()
         total = 0.0
-        since_ts = int(since.timestamp())
-        for tx in txs:
-            if tx.get("time", 0) >= since_ts:
-                for out in tx.get("outputs", []):
-                    if out.get("address") == wallet:
-                        total += float(out.get("value", 0))
+        for ref in data.get("txrefs", []):
+            if ref.get("tx_input_n") != -1:
+                continue  # outgoing side of a tx
+            confirmed = ref.get("confirmed")
+            if not confirmed:
+                continue
+            ts = datetime.fromisoformat(confirmed.replace("Z", "+00:00"))
+            if ts >= since:
+                total += ref.get("value", 0) / 1e8
         return total
     except Exception as e:
         log.warning(f"DOGE crawl failed: {e}")

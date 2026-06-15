@@ -19,11 +19,11 @@
 <section class="section" style="padding-top:0">
 <div class="inner">
 <div style="display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap">
-  <button onclick="loadPeriod('day')"    class="ptab active" id="tab-day">Today</button>
+  <button onclick="loadPeriod('day')"    class="ptab" id="tab-day">Today</button>
   <button onclick="loadPeriod('week')"   class="ptab" id="tab-week">This week</button>
   <button onclick="loadPeriod('month')"  class="ptab" id="tab-month">This month</button>
   <button onclick="loadPeriod('year')"   class="ptab" id="tab-year">This year</button>
-  <button onclick="loadPeriod('alltime')" class="ptab" id="tab-alltime">All time</button>
+  <button onclick="loadPeriod('alltime')" class="ptab active" id="tab-alltime">All time</button>
 </div>
 <div id="leaderboard-container" style="min-height:200px"></div>
 </div>
@@ -80,7 +80,7 @@ function loadPeriod(p) {
       c.innerHTML = '<div style="padding:40px;text-align:center;color:var(--dimmer)">Could not load leaderboard. Please try again.</div>';
     });
 }
-loadPeriod('day');
+loadPeriod('alltime');
 </script>
 
 <footer><div class="footer-inner">

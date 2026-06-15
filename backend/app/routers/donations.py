@@ -25,46 +25,57 @@ async def get_redis():
     finally:
         await r.aclose()
 
-async def fetch_eth_data():
+async def _get_prices() -> dict:
+    """Fetch live crypto prices from CoinGecko (free tier, no key needed)."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(
-                f"https://api.etherscan.io/api?module=account&action=balance"
-                f"&address={ETH_WALLET}&tag=latest"
+                "https://api.coingecko.com/api/v3/simple/price",
+                params={"ids": "ethereum,tron,dogecoin", "vs_currencies": "usd"},
             )
-            balance_eth = int(r.json().get("result", 0)) / 1e18
+            data = r.json()
+            return {
+                "eth":  float(data.get("ethereum", {}).get("usd", 3200)),
+                "trx":  float(data.get("tron",     {}).get("usd", 0.12)),
+                "doge": float(data.get("dogecoin",  {}).get("usd", 0.15)),
+            }
+    except Exception:
+        return {"eth": 3200.0, "trx": 0.12, "doge": 0.15}
+
+
+async def fetch_eth_data(eth_price: float):
+    """Balance + recent incoming transfers via Ethplorer (Etherscan V1 is deprecated)."""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                f"https://api.ethplorer.io/getAddressInfo/{ETH_WALLET}",
+                params={"apiKey": "freekey"},
+            )
+            balance_eth = float(r.json().get("ETH", {}).get("balance", 0))
+
             r2 = await client.get(
-                f"https://api.etherscan.io/api?module=account&action=txlist"
-                f"&address={ETH_WALLET}&startblock=0&endblock=99999999&sort=desc"
+                f"https://api.ethplorer.io/getAddressTransactions/{ETH_WALLET}",
+                params={"apiKey": "freekey", "limit": 20},
             )
-            txs = r2.json().get("result", [])
+            txs = r2.json()
             if not isinstance(txs, list):
                 txs = []
             donors = []
-            for tx in txs[:20]:
-                if tx.get("to","").lower() != ETH_WALLET.lower():
+            for tx in txs:
+                if tx.get("to", "").lower() != ETH_WALLET.lower():
                     continue
-                val_eth = int(tx.get("value", 0)) / 1e18
+                val_eth = float(tx.get("value", 0))
                 if val_eth <= 0:
                     continue
-                memo = None
-                inp = tx.get("input", "0x")
-                if inp and inp != "0x" and len(inp) > 2:
-                    try:
-                        raw = bytes.fromhex(inp[2:]).decode("utf-8", errors="ignore").strip()
-                        if raw and len(raw) > 2:
-                            memo = raw[:140]
-                    except Exception:
-                        pass
                 from_addr = tx.get("from", "")
                 display = f"0x{from_addr[2:8]}...{from_addr[-4:]}" if len(from_addr) > 10 else "anonymous"
                 donors.append({
                     "chain": "ETH",
                     "display_name": display,
                     "amount_display": f"{val_eth:.4f} ETH",
-                    "amount_usd_est": val_eth * 3200,
-                    "memo": memo,
-                    "ts": int(tx.get("timeStamp", 0))
+                    "amount_usd_est": val_eth * eth_price,
+                    "memo": None,
+                    "ts": int(tx.get("timestamp", 0))
                 })
             return balance_eth, donors
     except Exception:
@@ -80,18 +91,20 @@ async def fetch_trx_data():
         return 0.0, []
 
 async def fetch_doge_data():
+    """Balance via BlockCypher (dogechain.info is behind a Cloudflare bot challenge)."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.get(f"https://dogechain.info/api/v1/address/balance/{DOGE_WALLET}")
-            return float(r.json().get("balance", 0)), []
+            r = await client.get(f"https://api.blockcypher.com/v1/doge/main/addrs/{DOGE_WALLET}/balance")
+            return r.json().get("balance", 0) / 1e8, []
     except Exception:
         return 0.0, []
 
 async def refresh_donation_stats(redis) -> dict:
-    eth_bal, eth_donors = await fetch_eth_data()
+    prices = await _get_prices()
+    eth_bal, eth_donors = await fetch_eth_data(prices["eth"])
     trx_bal, _          = await fetch_trx_data()
     doge_bal, _         = await fetch_doge_data()
-    total_usd = (eth_bal * 3200) + (trx_bal * 0.12) + (doge_bal * 0.15)
+    total_usd = (eth_bal * prices["eth"]) + (trx_bal * prices["trx"]) + (doge_bal * prices["doge"])
     all_donors = sorted(eth_donors, key=lambda x: x.get("ts", 0), reverse=True)
     last_ago = "none yet"
     if all_donors and all_donors[0].get("ts", 0) > 0:

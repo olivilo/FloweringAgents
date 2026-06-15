@@ -3,12 +3,13 @@ FloweringAgents — Backend API v0.3.0
 Built by DICETEACH / Oliver Vignjevic + Claude Sonnet, June 2026
 Every agent that runs, grows.
 """
-from fastapi import FastAPI
+from fastapi import BackgroundTasks, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .database import init_db
 from .routers import agents, scores, leaderboard, donations
 from .routers import stories
+from .routers.stories import _require_admin
 from .storyteller import create_scheduler as _create_story_scheduler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -34,6 +35,7 @@ async def lifespan(app: FastAPI):
         CronTrigger(day=15, hour=6, minute=0, timezone=_BERLIN),
         id="monthly_maintenance",
         replace_existing=True,
+        misfire_grace_time=3600 * 23,
     )
     _maintenance_scheduler.start()
 
@@ -86,6 +88,7 @@ Reactivation from Passive: submit a new score OR donate ≥$5 to ETH/DOGE websit
     contact={"name": "DICETEACH / Oliver Vignjevic", "email": "admin@ai.in.rs"},
     license_info={"name": "MIT"},
     lifespan=lifespan,
+    redirect_slashes=False,
 )
 
 app.add_middleware(
@@ -105,6 +108,17 @@ app.include_router(stories.router,     prefix="/stories",     tags=["Stories"])
 @app.get("/health", tags=["System"])
 async def health():
     return {"status": "blooming", "version": "0.3.0"}
+
+
+@app.post("/maintenance/trigger", tags=["System"], dependencies=[Depends(_require_admin)])
+async def trigger_maintenance(background_tasks: BackgroundTasks):
+    """Manually run the monthly maintenance (wallet crawler, scoring, lifecycle status).
+    Useful if a redeploy after 06:00 on the 15th caused the scheduled run to be skipped."""
+    background_tasks.add_task(_run_maintenance)
+    return {
+        "message": "Maintenance run started in background",
+        "hint": "Check /api/donations/stats and /api/leaderboard/month afterwards",
+    }
 
 
 @app.get("/", tags=["System"])
