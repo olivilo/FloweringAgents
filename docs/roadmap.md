@@ -13,7 +13,14 @@
 ### Sicherheit
 - [x] **Ed25519 Signatur-Verifikation** — `POST /scores/submit` mit optionaler Signatur, Verified-Upgrade (transparency_level 1→2); `GET /scores/keygen` mit Setup-Anleitung
 
-Alle Punkte per Smoke-Tests (SQLite) + `ruff check` verifiziert, nach `origin/main` und `v2/main` gepusht (Commit `7264447`). **Deploy auf der VM steht noch aus** — Production meldet noch v0.2.0.
+Alle Punkte per Smoke-Tests (SQLite) + `ruff check` verifiziert, nach `origin/main` und `v2/main` gepusht (Commit `7264447`).
+
+### Deploy auf der VM (15.06., abends)
+- [x] `git pull` (66107d0 → 60071b6), Backend neu gebaut & gestartet — `/api/health` meldet jetzt **v0.3.0**
+- [x] Additive Migration lief automatisch (`status`, `genesis_mult` in `agents` ergänzt)
+- [x] Frontend-Statics nach `/var/www/floweringagents/` kopiert
+- [x] **og-image.png** war im Repo nur ein 11-Byte-Platzhalter (seit Tag 4) — echte 1200×630 Social Card generiert, committed & deployed
+- [x] **CSP-Header live geschaltet** — Bug im `infra/nginx.conf` gefixt (mehrzeilige Strings wurden von nginx nicht verkettet → `add_header` Syntaxfehler), `nginx -t` + reload, alle 10 Seiten + API verifiziert (200 OK)
 
 ## ✅ Erledigt in Tag 4
 
@@ -59,12 +66,11 @@ Alle Punkte per Smoke-Tests (SQLite) + `ruff check` verifiziert, nach `origin/ma
   sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
   sudo systemctl enable fail2ban && sudo systemctl start fail2ban
   ```
-- [ ] **Deploy Tag 4 + Tag 5 auf der VM** — `git pull` + `docker compose up -d --build` (Backend, additive Migration läuft automatisch in `init_db()`) + `sudo cp` für Statics. Production meldet noch v0.2.0.
+- [ ] **GitHub-PAT aus VM-Git-Remote entfernen** — `origin` nutzt aktuell einen Personal Access Token in der Remote-URL (`.git/config` auf der VM). Auf Deploy-Key oder SSH-Remote umstellen, Token danach auf GitHub rotieren.
 
 ## 🌱 Mittel (nächste 2 Wochen)
 
 - [ ] **CoinGecko Live-Kurse** auf donate.html (ETH hardcoded $3200)
-- [ ] **og-image.png auf VM deployen** — per Deploy-Workflow nach `/var/www/floweringagents/` kopieren
 - [ ] **Donation-Stats → Storyteller-Kontext** (Flower freut sich über "Regen")
 - [ ] **ETH-Memo Matching** — Phase 2: Reactivation per agent_id im ETH-Memo-Feld
 

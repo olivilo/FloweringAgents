@@ -131,14 +131,13 @@ Alle Transaktionen on-chain verifizierbar. Chain-Crawler zählt Eingänge ab 10.
 - Admin Token: timing-safe comparison, fail-closed wenn nicht konfiguriert
 - Ed25519-Signaturen für Score-Submissions (optional, upgraded auf "Verified")
 
-**Offene Punkte:** SSH Key-only Auth + fail2ban · Deploy von Tag 4+5 auf die VM (Production läuft noch auf v0.2.0)
+**Offene Punkte:** SSH Key-only Auth + fail2ban
 
 ---
 
 ## 🗺️ Roadmap
 
 **Sofort:**
-- Deploy von Tag 4 + Tag 5 auf die VM (Production läuft noch auf Backend v0.2.0)
 - SSH Key-only Auth + fail2ban
 
 **Diese Woche:**
