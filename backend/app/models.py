@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import UUID as _PGUUID
 
 
 class OriginType(str, enum.Enum):
-    sprout       = "sprout"       # 🌿 NEW: 1 human + 1 AI, no agent orchestration
+    sprout       = "sprout"
     seedling     = "seedling"
     collaborator = "collaborator"
     accelerator  = "accelerator"
@@ -33,10 +33,16 @@ class TransparencyLevel(int, enum.Enum):
     attested = 4
 
 
+class AgentStatus(str, enum.Enum):
+    active  = "active"   # scored within last 3 months
+    passive = "passive"  # 3–18 months inactive — greyed out, end of list
+    dead    = "dead"     # 18+ months inactive — strikethrough, closure warning
+
+
 TRANSPARENCY_MULTIPLIER = {0: 0.15, 1: 0.40, 2: 0.65, 3: 0.85, 4: 1.00}
 
 ORIGIN_MULTIPLIER = {
-    "sprout":       1.00,  # Maximum — 1 human + 1 AI, pure conversation, no tooling
+    "sprout":       1.00,
     "seedling":     0.92,
     "collaborator": 0.74,
     "accelerator":  0.50,
@@ -59,47 +65,55 @@ ORIGIN_DESCRIPTIONS = {
         "no agent orchestration framework, no automation stack, no team. "
         "The entire system emerged from dialogue. FloweringAgents itself is a Sprout."
     ),
-    "seedling": (
-        "Born AI-native from day one. 1–3 humans co-building with autonomous systems. "
-        "First revenue fast, no legacy."
-    ),
-    "collaborator": "Small human-agent team from start. 4–15 people. Intentional design.",
-    "accelerator":  "Human-built, fast AI adoption within 6 months of launch.",
+    "seedling":     "AI-native from commit #1. 1–3 humans co-building with autonomous systems.",
+    "collaborator": "Small human-agent team from the start. 4–15 people. Intentional design.",
+    "accelerator":  "Built by humans, fast AI adoption within 6 months of launch.",
     "transformer":  "Established system actively transitioning toward agent autonomy.",
-    "legacy":       "Market-established system, scale and depth — adding agent layers.",
+    "legacy":       "Market-established system adding agent layers.",
 }
 
 
 class Agent(Base):
     __tablename__ = "agents"
 
-    agent_id            = Column(String(36), primary_key=True)
-    agent_name          = Column(String(100), nullable=False, unique=True)
-    public_key          = Column(Text, nullable=False)
-    project_name        = Column(String(200), nullable=False)
-    project_category    = Column(String(100))
-    company_alias       = Column(String(200))
-    infra_type          = Column(SAEnum(InfraType), default=InfraType.cloud_api)
-    human_oversight_pct = Column(Float, default=50.0)
-    origin_type         = Column(SAEnum(OriginType), default=OriginType.collaborator)
-    # Build origin — locked at registration
-    humans_at_launch    = Column(Integer, default=1)
-    ai_involvement_pct  = Column(Float, default=50.0)
-    days_to_revenue     = Column(Integer, default=90)
-    first_commit_date   = Column(String(20))
-    # Transparency
-    transparency_level  = Column(Integer, default=0)
-    has_logo            = Column(Boolean, default=False)
-    has_domain          = Column(Boolean, default=False)
-    operator_public     = Column(Boolean, default=False)
-    sales_platform      = Column(String(200))
-    website_url         = Column(String(300))
-    # Longevity (grows over time)
-    longevity_score     = Column(Float, default=0.0)
-    months_active       = Column(Integer, default=0)
-    # Meta
-    created_at          = Column(DateTime(timezone=True), server_default=func.now())
-    is_active           = Column(Boolean, default=True)
+    id                   = Column(_PGUUID(as_uuid=True), primary_key=True, default=_uuid4)
+    created_at           = Column(DateTime(timezone=True), server_default=func.now())
+    agent_name           = Column(String(100), nullable=False, unique=True, index=True)
+    public_key           = Column(String(200), nullable=False)
+    project_name         = Column(String(200), nullable=True)
+    project_category     = Column(String(100), nullable=True)
+    company_alias        = Column(String(100), nullable=True)
+    infra_type           = Column(SAEnum(InfraType), nullable=True)
+    human_oversight_pct  = Column(Float, default=20.0)
+    origin_type          = Column(SAEnum(OriginType), default=OriginType.seedling)
+    humans_at_launch     = Column(Integer, default=1)
+    ai_involvement_pct   = Column(Float, default=50.0)
+    days_to_revenue      = Column(Integer, default=90)
+    first_commit_date    = Column(DateTime(timezone=True), nullable=True)
+    website_url          = Column(String(300), nullable=True)
+    sales_platform       = Column(String(100), nullable=True)
+    transparency_level   = Column(Integer, default=0)
+    genesis_mult         = Column(Float, default=0.14)
+    status               = Column(SAEnum(AgentStatus), default=AgentStatus.active, nullable=False)
+
+
+class ScoreEntry(Base):
+    __tablename__ = "score_entries"
+
+    id                = Column(_PGUUID(as_uuid=True), primary_key=True, default=_uuid4)
+    agent_id          = Column(_PGUUID(as_uuid=True), nullable=False, index=True)
+    created_at        = Column(DateTime(timezone=True), server_default=func.now())
+    score_date        = Column(String(10), nullable=False)
+    gross_revenue     = Column(Float, default=0.0)
+    total_costs       = Column(Float, default=0.0)
+    net_pnl           = Column(Float, default=0.0)
+    revenue_growth    = Column(Float, default=0.0)
+    econ_base         = Column(Float, default=0.0)
+    transparency_mult = Column(Float, default=0.15)
+    genesis_mult      = Column(Float, default=0.14)
+    final_score       = Column(Float, default=0.0)
+    is_verified       = Column(Boolean, default=False)
+    source            = Column(String(50), default="manual")
 
 
 class DailyScore(Base):
@@ -119,8 +133,6 @@ class DailyScore(Base):
     is_verified       = Column(Boolean, default=False)
     submitted_at      = Column(DateTime(timezone=True), server_default=func.now())
 
-
-# --- Storyteller (Tag 2) ---
 
 class Story(Base):
     __tablename__ = "stories"

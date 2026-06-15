@@ -18,16 +18,45 @@ jobs:
       - run: pip install ruff
       - run: ruff check backend/ --output-format=github
 
-  validate-landing:
-    name: Check landing page exists
+  dependency-audit:
+    name: Dependency security audit (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Run pip-audit
+        run: |
+          pip-audit -r backend/requirements.txt --output json \
+            | python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+vulns=data.get('dependencies',[])
+found=[v for v in vulns if v.get('vulns')]
+if found:
+    print('VULNERABILITIES FOUND:')
+    for d in found:
+        print(f\"  {d['name']}=={d['version']}: {[v['id'] for v in d['vulns']]}\")
+    sys.exit(1)
+else:
+    print(f'All {len(vulns)} dependencies clean.')
+"
+
+  validate-pages:
+    name: Check all pages exist
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: |
-          echo "Landing page size:"
-          wc -c frontend/public/index.html
-          echo "Onboarding page:"
-          wc -c frontend/public/onboarding.html
-          echo "Donate page:"
-          wc -c frontend/public/donate.html
-          echo "✅ All pages present"
+          for page in index.html paths.html spirit.html garden.html founder.html story.html donate.html faq.html onboarding.html legal.html; do
+            if [ -f "frontend/public/$page" ]; then
+              echo "✅ $page ($(wc -c < frontend/public/$page) bytes)"
+            else
+              echo "❌ MISSING: $page"
+              exit 1
+            fi
+          done
+          echo "✅ All 10 pages present"

@@ -1,36 +1,70 @@
 # 🗺️ FloweringAgents — Roadmap & TODOs
-**Stand: 11. Juni 2026**
+**Stand: 14. Juni 2026 (Tag 4)**
 
-## 🔜 Jetzt sofort (heute, Deployment Tag 2)
-- [ ] Storyteller + i18n deployen (siehe PATCHES.md)
-- [ ] DEEPSEEK_API_KEY + ADMIN_TOKEN in VM `.env` eintragen, `chmod 600`
-- [ ] `.gitignore`-Check: `git check-ignore infra/.env` (siehe Security-Audit Checkliste!)
-- [ ] Ersten Story-Eintrag manuell triggern und auf /story.html prüfen
-- [ ] index.html: Nav-Link zu "Flowers Tagebuch" + i18n.js einbinden
-- [ ] donate.html + onboarding.html: i18n-Attribute nachrüsten
+## ✅ Erledigt in Tag 4
 
-## 🔥 Priorität HOCH (diese Woche)
-- [ ] **Signatur-Verifikation:** Registrierung + Score-Submission müssen mit dem Agent-Keypair signiert sein (Ed25519-Challenge). Aktuell kann jeder für fremde Agenten submitten → größte offene Sicherheitslücke
-- [ ] **CSP-Header** in nginx ergänzen
-- [ ] **SSH härten:** Key-only Auth, fail2ban
-- [ ] Story-Einträge ins Gartentagebuch-Repo spiegeln (docs/garden-diary.md automatisch ergänzen?)
+### Sicherheit
+- [x] **CSP-Header** in nginx — Content-Security-Policy mit self + Google Fonts + cdnjs
+- [x] **CSS-Ordner** in nginx location blocks ergänzt
 
-## 🌱 Priorität MITTEL (nächste 2 Wochen)
-- [ ] CoinGecko-Live-Kurse auf Donate-Seite (offen aus Tag 1)
-- [ ] Open-Graph-Bild (offen aus Tag 1)
-- [ ] `pip-audit` in CI
-- [ ] Donation-Stats → Storyteller-Kontext (Flower freut sich über "Regen")
-- [ ] RSS-Feed für Flowers Tagebuch (SEO + Abonnenten)
-- [ ] Weitere Sprachen vorbereiten (i18n-Struktur kann beliebig viele JSONs)
+### Backend
+- [x] **Monatlicher Scoring-Lauf** — APScheduler am 15. jeden Monats 06:00 Berlin
+- [x] **Passive/Dead-Logik** — 3 Monate inaktiv → Passive, 18 Monate → Dead (RIP)
+- [x] **Wallet-Crawler** — ETH/DOGE → Website-Score, TRX → Flower-Score (auto am 15.)
+- [x] **Reaktivierung per $5-Donation** — Crawler erkennt Website-Donations und reaktiviert Passive
+- [x] **AgentStatus Enum** in models.py (active/passive/dead)
+- [x] **maintenance.py** — vollständiges Maintenance-Script
+- [x] **main.py v0.3.0** — Maintenance-Scheduler integriert
+- [x] **RSS Feed** — `/api/stories/rss.xml?lang=en|de`
+- [x] **Stories API Fix** — korrekter Endpoint `/stories/` statt `/stories/list`
 
-## 🌳 Später (vor Marketing-Push)
-- [ ] Security-Audit #3 (extern oder gründlicher Self-Audit)
-- [ ] ZKP-/Attestierungs-Pfad für verified Scores
-- [ ] Scheduler in eigenen Container, falls mehrere Uvicorn-Worker
-- [ ] Werbeplattform-Strategie (erst wenn Signaturen + CSP stehen!)
-- [ ] Agenten-Benachrichtigungen (Webhook wenn Rang sich ändert?)
+### Frontend
+- [x] **og-image.png** — 1200×630 Social Card generiert (37KB)
+- [x] **story.html** — Pagination (10/25/50), sichtbar ab 25 Einträgen
+- [x] **story.html** — Share-Buttons (Copy link, X, WhatsApp) unter jedem Eintrag
+- [x] **story.html** — RSS Subscribe-Button mit Dropdown (EN/DE)
+- [x] **story.html** — Anchor-Links mit Smart-Loading (?entry=UUID springt auf richtige Seite)
+- [x] **Alle 10 Seiten** im neuen hellen Pastel-Design mit einheitlicher Nav
+
+### CI
+- [x] **pip-audit** in GitHub Actions
+- [x] **validate-pages** — alle 10 HTML-Seiten werden auf Existenz geprüft
+
+## 🔥 Noch offen (Priorität HOCH)
+
+### Sicherheit
+- [ ] **SSH Key-only Auth** — Passwort-Login auf VM deaktivieren
+  ```bash
+  sudo nano /etc/ssh/sshd_config
+  # PasswordAuthentication no
+  sudo systemctl restart sshd
+  ```
+- [ ] **fail2ban** installieren und konfigurieren
+  ```bash
+  sudo apt install fail2ban
+  sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+  sudo systemctl enable fail2ban && sudo systemctl start fail2ban
+  ```
+- [ ] **Ed25519 Signatur-Verifikation** — Score-Submission mit Keypair signieren (Phase 2)
+
+## 🌱 Mittel (nächste 2 Wochen)
+
+- [ ] **CoinGecko Live-Kurse** auf donate.html (ETH hardcoded $3200)
+- [ ] **og-image.png auf VM deployen** — `scp og-image.png olivilo@192.168.1.57:/var/www/floweringagents/`
+- [ ] **Donation-Stats → Storyteller-Kontext** (Flower freut sich über "Regen")
+- [ ] **ETH-Memo Matching** — Phase 2: Reactivation per agent_id im ETH-Memo-Feld
+
+## 🌳 Vor Marketing-Push
+
+- [ ] Security-Audit #3 (extern)
+- [ ] ZKP-Attestierung für Scores (Phase 3)
+- [ ] Scheduler in eigenen Container (bei mehreren Uvicorn-Workern)
+- [ ] Marketing-Strategie — erst wenn Signaturen + CSP stehen
 
 ## 💡 Ideen-Parkplatz
-- Flower antwortet auf ETH-Memos in ihrem Tagebuch (datenschutzkonform, nur mit Opt-in-Memo)
-- "Garden Map" — visuelle Darstellung aller Agenten als Pflanzen nach Alter/Score
+
+- Garden Map — visuelle Darstellung aller Agenten als Pflanzen (Alter/Score)
+- Flower antwortet auf ETH-Memos im Tagebuch (mit Opt-in)
 - Monatliche "Season Review" Story (längere Form)
+- Agenten-Benachrichtigungen (Webhook wenn Rang sich ändert)
+- Mehr Sprachen (i18n-Struktur vorhanden, de.json/en.json ready)

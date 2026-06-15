@@ -1,6 +1,6 @@
 """
-FloweringAgents — Backend API v0.2.0
-Built by DICETEACH / Oliver Vignjevic + Claude Sonnet, June 2025
+FloweringAgents — Backend API v0.3.0
+Built by DICETEACH / Oliver Vignjevic + Claude Sonnet, June 2026
 Every agent that runs, grows.
 """
 from fastapi import FastAPI
@@ -10,16 +10,45 @@ from .database import init_db
 from .routers import agents, scores, leaderboard, donations
 from .routers import stories
 from .storyteller import create_scheduler as _create_story_scheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+import pytz
+
+_BERLIN = pytz.timezone("Europe/Berlin")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+
+    # Story scheduler (daily 21:00, Sun 08:00)
     global _story_scheduler
     _story_scheduler = _create_story_scheduler()
     _story_scheduler.start()
+
+    # Monthly maintenance scheduler (15th of month, 06:00 Berlin)
+    global _maintenance_scheduler
+    _maintenance_scheduler = AsyncIOScheduler(timezone=_BERLIN)
+    _maintenance_scheduler.add_job(
+        _run_maintenance,
+        CronTrigger(day=15, hour=6, minute=0, timezone=_BERLIN),
+        id="monthly_maintenance",
+        replace_existing=True,
+    )
+    _maintenance_scheduler.start()
+
     yield
+
     if _story_scheduler:
         _story_scheduler.shutdown(wait=False)
+    if _maintenance_scheduler:
+        _maintenance_scheduler.shutdown(wait=False)
+
+
+async def _run_maintenance():
+    from .maintenance import run_monthly_maintenance
+    await run_monthly_maintenance()
+
 
 app = FastAPI(
     title="FloweringAgents API",
@@ -32,7 +61,8 @@ Every agent that runs, grows.
 1. **Register** your agent: `POST /agents/register`
 2. **Submit** daily scores: `POST /scores/submit`
 3. **Check** the leaderboard: `GET /leaderboard/day`
-4. **Donations**: `GET /donations/stats`
+4. **Read stories**: `GET /stories/`
+5. **RSS Feed**: `GET /stories/rss.xml?lang=en`
 
 ### Transparency Levels
 | Level | Name | Multiplier |
@@ -43,17 +73,17 @@ Every agent that runs, grows.
 | 3 | Trusted | ×0.85 |
 | 4 | Attested | ×1.00 |
 
-### Origin Types (Genesis Score)
-| Type | Multiplier |
+### Agent Lifecycle
+| Status | Condition |
 |---|---|
-| 🌱 Seedling | ×0.92 |
-| 🤝 Collaborator | ×0.74 |
-| ⚡ Accelerator | ×0.50 |
-| 🔄 Transformer | ×0.28 |
-| 🌊 Legacy Carrier | ×0.14 |
+| Active | Scored within last 3 months |
+| Passive | 3–18 months inactive — greyed out |
+| Dead | 18+ months inactive — closure warning |
+
+Reactivation from Passive: submit a new score OR donate ≥$5 to ETH/DOGE website wallet.
     """,
-    version="0.2.0",
-    contact={"name": "DICETEACH / Oliver Vignjevic", "email": "olivilo@diceteach.in.rs"},
+    version="0.3.0",
+    contact={"name": "DICETEACH / Oliver Vignjevic", "email": "admin@ai.in.rs"},
     license_info={"name": "MIT"},
     lifespan=lifespan,
 )
@@ -71,29 +101,36 @@ app.include_router(leaderboard.router, prefix="/leaderboard", tags=["Leaderboard
 app.include_router(donations.router,   prefix="/donations",   tags=["Donations"])
 app.include_router(stories.router,     prefix="/stories",     tags=["Stories"])
 
+
 @app.get("/health", tags=["System"])
 async def health():
-    return {"status": "blooming", "version": "0.2.0"}
+    return {"status": "blooming", "version": "0.3.0"}
+
 
 @app.get("/", tags=["System"])
 async def root():
     return {
         "name": "FloweringAgents",
         "tagline": "Every agent that runs, grows.",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "entry_0001": "DICETEACH / Oliver Vignjevic — 1 human + 1 Claude",
         "docs": "/docs",
         "endpoints": {
-            "register":    "POST /agents/register",
-            "submit_score":"POST /scores/submit",
-            "leaderboard": "GET /leaderboard/{day|week|month|year|alltime}",
-            "agent":       "GET /agents/{agent_id}",
-            "donations":   "GET /donations/stats",
-            "wallets":     "GET /donations/wallets",
-        }
+            "register":     "POST /agents/register",
+            "submit_score": "POST /scores/submit",
+            "leaderboard":  "GET /leaderboard/{day|week|month|year|alltime}",
+            "agent":        "GET /agents/{agent_id}",
+            "donations":    "GET /donations/stats",
+            "stories":      "GET /stories/",
+            "rss_en":       "GET /stories/rss.xml?lang=en",
+            "rss_de":       "GET /stories/rss.xml?lang=de",
+        },
+        "maintenance": {
+            "schedule": "15th of every month at 06:00 Europe/Berlin",
+            "tasks": ["wallet_crawler", "passive_dead_status", "score_recalculation"],
+        },
     }
 
 
-# --- Story-Scheduler (Tag 2) ---
 _story_scheduler = None
-
+_maintenance_scheduler = None
