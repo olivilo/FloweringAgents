@@ -11,14 +11,13 @@ Aufgaben:
 import logging
 import os
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 
 import httpx
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database import AsyncSessionLocal
-from .models import Agent, ScoreEntry, AgentStatus
+from .models import Agent, DailyScore, AgentStatus
 
 log = logging.getLogger(__name__)
 
@@ -148,7 +147,6 @@ async def run_monthly_maintenance():
 async def _crawl_wallets(db: AsyncSession):
     """Read wallet balances and book new donations as score revenue."""
     prices = await _get_prices()
-    now = datetime.now(timezone.utc)
     # Only count donations since deploy date
     since = DEPLOY_DATE
 
@@ -217,7 +215,7 @@ async def _check_reactivations(db: AsyncSession, total_usd: float, prices: dict)
         passive = result.scalars().all()
         for agent in passive:
             agent.status = AgentStatus.active
-            log.info(f"Reactivated passive agent: {agent.agent_name} ({agent.id})")
+            log.info(f"Reactivated passive agent: {agent.agent_name} ({agent.agent_id})")
 
 
 async def _update_agent_statuses(db: AsyncSession):
@@ -232,26 +230,27 @@ async def _update_agent_statuses(db: AsyncSession):
     for agent in agents:
         # Get last score date
         score_result = await db.execute(
-            select(ScoreEntry)
-            .where(ScoreEntry.agent_id == agent.id)
-            .order_by(ScoreEntry.created_at.desc())
+            select(DailyScore)
+            .where(DailyScore.agent_id == agent.agent_id)
+            .order_by(DailyScore.submitted_at.desc())
             .limit(1)
         )
         last_score = score_result.scalar_one_or_none()
-        last_activity = last_score.created_at if last_score else agent.created_at
+        last_activity = last_score.submitted_at if last_score else agent.created_at
 
         if last_activity.tzinfo is None:
             last_activity = last_activity.replace(tzinfo=timezone.utc)
 
         old_status = agent.status
         if last_activity < dead_cutoff:
-            agent.status = AgentStatus.dead
-            log.warning(f"Agent DEAD: {agent.agent_name} — last activity {last_activity.date()}")
+            if old_status != AgentStatus.dead:
+                agent.status = AgentStatus.dead
+                log.warning(f"Agent DEAD: {agent.agent_name} — last activity {last_activity.date()}")
         elif last_activity < passive_cutoff:
-            if agent.status == AgentStatus.active:
+            if old_status == AgentStatus.active:
                 agent.status = AgentStatus.passive
                 log.info(f"Agent PASSIVE: {agent.agent_name} — last activity {last_activity.date()}")
         else:
-            if agent.status in (AgentStatus.passive, AgentStatus.dead):
+            if old_status in (AgentStatus.passive, AgentStatus.dead):
                 agent.status = AgentStatus.active
                 log.info(f"Agent REACTIVATED: {agent.agent_name}")

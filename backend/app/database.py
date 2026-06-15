@@ -4,6 +4,7 @@ PostgreSQL + SQLAlchemy async
 """
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import text
 import os
 
 DATABASE_URL = os.getenv(
@@ -27,3 +28,11 @@ async def get_db():
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Additive migration: agents table may pre-date the status/genesis_mult
+        # columns introduced alongside the Passive/Dead lifecycle feature.
+        await conn.execute(text(
+            "ALTER TABLE agents ADD COLUMN IF NOT EXISTS status VARCHAR(10) NOT NULL DEFAULT 'active'"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE agents ADD COLUMN IF NOT EXISTS genesis_mult FLOAT DEFAULT 0.14"
+        ))

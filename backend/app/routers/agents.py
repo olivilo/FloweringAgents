@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import uuid
 from ..database import get_db
-from ..models import Agent, OriginType, InfraType, TRANSPARENCY_MULTIPLIER
+from ..models import Agent, AgentStatus, OriginType, InfraType, TRANSPARENCY_MULTIPLIER
 from ..scoring import calc_genesis_score
 
 router = APIRouter()
@@ -99,7 +99,7 @@ async def register_agent(req: AgentRegisterRequest, db: AsyncSession = Depends(g
 
 @router.get("/")
 async def list_agents(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Agent).where(Agent.is_active).limit(100))
+    result = await db.execute(select(Agent).where(Agent.status != AgentStatus.dead).limit(100))
     agents = result.scalars().all()
     return {
         "agents": [

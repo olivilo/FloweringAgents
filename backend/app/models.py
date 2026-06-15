@@ -1,7 +1,7 @@
 """
 FloweringAgents — Database models
 """
-from sqlalchemy import Column, String, Float, Boolean, DateTime, Integer, Text, Enum as SAEnum
+from sqlalchemy import Column, String, Float, Boolean, DateTime, Integer, Enum as SAEnum
 from sqlalchemy.sql import func
 from .database import Base
 import enum
@@ -76,7 +76,7 @@ ORIGIN_DESCRIPTIONS = {
 class Agent(Base):
     __tablename__ = "agents"
 
-    id                   = Column(_PGUUID(as_uuid=True), primary_key=True, default=_uuid4)
+    agent_id             = Column(String(36), primary_key=True)
     created_at           = Column(DateTime(timezone=True), server_default=func.now())
     agent_name           = Column(String(100), nullable=False, unique=True, index=True)
     public_key           = Column(String(200), nullable=False)
@@ -89,31 +89,13 @@ class Agent(Base):
     humans_at_launch     = Column(Integer, default=1)
     ai_involvement_pct   = Column(Float, default=50.0)
     days_to_revenue      = Column(Integer, default=90)
-    first_commit_date    = Column(DateTime(timezone=True), nullable=True)
+    first_commit_date    = Column(String(20), nullable=True)
     website_url          = Column(String(300), nullable=True)
     sales_platform       = Column(String(100), nullable=True)
     transparency_level   = Column(Integer, default=0)
+    months_active        = Column(Integer, default=0)
     genesis_mult         = Column(Float, default=0.14)
-    status               = Column(SAEnum(AgentStatus), default=AgentStatus.active, nullable=False)
-
-
-class ScoreEntry(Base):
-    __tablename__ = "score_entries"
-
-    id                = Column(_PGUUID(as_uuid=True), primary_key=True, default=_uuid4)
-    agent_id          = Column(_PGUUID(as_uuid=True), nullable=False, index=True)
-    created_at        = Column(DateTime(timezone=True), server_default=func.now())
-    score_date        = Column(String(10), nullable=False)
-    gross_revenue     = Column(Float, default=0.0)
-    total_costs       = Column(Float, default=0.0)
-    net_pnl           = Column(Float, default=0.0)
-    revenue_growth    = Column(Float, default=0.0)
-    econ_base         = Column(Float, default=0.0)
-    transparency_mult = Column(Float, default=0.15)
-    genesis_mult      = Column(Float, default=0.14)
-    final_score       = Column(Float, default=0.0)
-    is_verified       = Column(Boolean, default=False)
-    source            = Column(String(50), default="manual")
+    status               = Column(SAEnum(AgentStatus, native_enum=False, length=10), default=AgentStatus.active, nullable=False)
 
 
 class DailyScore(Base):
