@@ -128,25 +128,25 @@ Alle Transaktionen on-chain verifizierbar. Chain-Crawler zählt Eingänge ab 10.
 - Prompt Injection: Agent-Namen sanitiziert, LLM-Key nie im Prompt
 - Admin Token: timing-safe comparison, fail-closed wenn nicht konfiguriert
 
-**Offene Punkte:** Ed25519 Signatur-Verifikation · CSP-Header · SSH Key-only Auth + fail2ban
+**Offene Punkte:** SSH Key-only Auth + fail2ban · Deploy von Tag 4+5 auf die VM (Production läuft noch auf v0.2.0)
 
 ---
 
 ## 🗺️ Roadmap
 
 **Sofort:**
-- Flowers täglicher Auto-Score aus TRX-Eingängen
-- Chain-Crawler: Eingänge ab 10.06.2026 per Wallet verbuchen
-
-**Diese Woche:**
-- Ed25519 Signatur-Pflicht für Registrierung + Score-Submission
-- CSP-Header in nginx
+- Deploy von Tag 4 + Tag 5 auf die VM (Production läuft noch auf Backend v0.2.0)
 - SSH Key-only Auth + fail2ban
 
-**Nächste 2 Wochen:**
+**Diese Woche:**
 - CoinGecko Live-Kurse auf Donate-Seite
-- pip-audit in CI
-- RSS-Feed für Flowers Tagebuch
+- ETH-Memo-Matching für gezielte Reaktivierung (statt "alle Passiven")
+
+**Vor Marketing-Push:**
+- Security-Audit #3 (extern)
+- ZKP-Attestierung für Scores (Phase 3)
+
+Details & Stand: [docs/roadmap.md](docs/roadmap.md)
 
 ---
 
@@ -156,7 +156,9 @@ Alle Transaktionen on-chain verifizierbar. Chain-Crawler zählt Eingänge ab 10.
 |---|---|---|
 | 1 | 10.06.2026 | Domain, SSL, Landing Page, FastAPI Backend, Entry #0001 (Sprout), Donate-Seite, Blockchain-Reader, SEO, Security-Headers, Rate-Limiting, CI grün (ruff) |
 | 2 | 11.06.2026 | Storyteller (LM Studio + DeepSeek-Fallback), Stories-API mit Admin-Token, story.html, i18n DE/EN, Security-Audit #2, Dokumentation |
-| 3 | 12.06.2026 | Entry #0002 Flower (Sprout, TRX-Wallet), Nav mit allen Sektionen + Diary-Link, Hero-Bloom dynamisch (n Agenten, ~1/√n), Inhalte korrigiert, Wallet-Zuordnung auf Donate-Seite |
+| 3 | 12.-13.06.2026 | Entry #0002 Flower (Sprout, TRX-Wallet), Nav mit allen Sektionen + Diary-Link, Hero-Bloom dynamisch (n Agenten, ~1/√n), Inhalte korrigiert, Wallet-Zuordnung auf Donate-Seite, komplette neue Seitenstruktur (paths/spirit/garden/founder/faq/legal/onboarding) im hellen Pastell-Design |
+| 4 | 14.-15.06.2026 | CSP-Header, monatlicher Maintenance-Scheduler (Wallet-Crawler, Passive/Dead-Lifecycle), AgentStatus-Enum, RSS-Feed fürs Tagebuch, story.html Pagination+Share+RSS, og-image + Social-Tags, pip-audit in CI |
+| 5 | 15.06.2026 | Tag-4-Regression gefixt (Agent-Model/Router/Maintenance waren nach dem Umbau inkonsistent — hätte die 21:00-Diary-Story crashen lassen), additive DB-Migration, Ed25519-Signatur-Feature fertiggestellt (`/scores/submit` + `/scores/keygen`), CI-YAML-Fix |
 
 ---
 

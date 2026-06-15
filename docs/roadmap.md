@@ -1,5 +1,19 @@
 # 🗺️ FloweringAgents — Roadmap & TODOs
-**Stand: 14. Juni 2026 (Tag 4)**
+**Stand: 15. Juni 2026 (Tag 5)**
+
+## ✅ Erledigt in Tag 5
+
+### Regression-Fix (Tag 4 hatte Diary-Crash riskiert)
+- [x] **models.py** — `agent_id` (PK), `months_active`, `first_commit_date` wiederhergestellt; `status`/`genesis_mult` additiv behalten; tote `ScoreEntry`-Tabelle entfernt
+- [x] **database.py** — additive Migration (`ALTER TABLE agents ADD COLUMN IF NOT EXISTS status/genesis_mult`) für das bestehende v0.2.0-Prod-Schema
+- [x] **routers/agents.py** — `is_active` → `status != dead`
+- [x] **maintenance.py** — `Agent.id` → `agent_id`, `ScoreEntry` → `DailyScore` für Last-Activity-Check; Status-Logs (DEAD/PASSIVE/REACTIVATED) nur noch bei echtem Wechsel
+- [x] **CI** — kaputtes YAML im pip-audit-Step von `ci.yml` gefixt
+
+### Sicherheit
+- [x] **Ed25519 Signatur-Verifikation** — `POST /scores/submit` mit optionaler Signatur, Verified-Upgrade (transparency_level 1→2); `GET /scores/keygen` mit Setup-Anleitung
+
+Alle Punkte per Smoke-Tests (SQLite) + `ruff check` verifiziert, nach `origin/main` und `v2/main` gepusht (Commit `7264447`). **Deploy auf der VM steht noch aus** — Production meldet noch v0.2.0.
 
 ## ✅ Erledigt in Tag 4
 
@@ -45,7 +59,7 @@
   sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
   sudo systemctl enable fail2ban && sudo systemctl start fail2ban
   ```
-- [ ] **Ed25519 Signatur-Verifikation** — Score-Submission mit Keypair signieren (Phase 2)
+- [ ] **Deploy Tag 4 + Tag 5 auf der VM** — `git pull` + `docker compose up -d --build` (Backend, additive Migration läuft automatisch in `init_db()`) + `sudo cp` für Statics. Production meldet noch v0.2.0.
 
 ## 🌱 Mittel (nächste 2 Wochen)
 
