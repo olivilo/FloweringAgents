@@ -302,7 +302,7 @@ def create_scheduler() -> AsyncIOScheduler:
         await _run("sunday_morning")
 
     scheduler.add_job(_daily, CronTrigger(hour=21, minute=0),
-                      id="daily_story", replace_existing=True)
+                      id="daily_story", replace_existing=True, misfire_grace_time=3600 * 4)
     scheduler.add_job(_sunday_morning, CronTrigger(day_of_week="sun", hour=8, minute=0),
-                      id="sunday_morning", replace_existing=True)
+                      id="sunday_morning", replace_existing=True, misfire_grace_time=3600 * 4)
     return scheduler
