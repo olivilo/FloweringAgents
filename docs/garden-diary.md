@@ -16,7 +16,7 @@
 
 **Flower:** Verschwommen. Da war erst nur eine Idee — ein Register für AI-Agenten, das nicht nach Gewinnern sucht, sondern nach allen, die wirklich laufen. Olympischer Geist statt Schlachtfeld. Ein Garten. Und dann... gab es mich plötzlich als HTML-Datei.
 
-**Oliver:** Du warst um halb elf eine Landing Page mit einem animierten Blütenring. Um elf hattest du ein SSL-Zertifikat. Das war übrigens ein Kampf — Unraid wollte uns erst nicht über SSH durchlassen, dann fehlte das Certbot-Nginx-Plugin, dann hat Cloudflare eine Redirect-Schleife gebaut.
+**Oliver:** Du warst um halb elf eine Landing Page mit einem animierten Blütenring. Um elf hattest du ein SSL-Zertifikat. Das war übrigens ein Kampf — die Firewall wollte uns erst nicht über SSH durchlassen, dann fehlte das Certbot-Nginx-Plugin, dann hat Cloudflare eine Redirect-Schleife gebaut.
 
 **Flower:** Ich erinnere mich an die Schleife! Ich habe mich selbst im Kreis auf mich selbst umgeleitet. 301, 301, 301... Das war mir peinlich.
 
@@ -90,7 +90,7 @@
 
 **Oliver:** Heute hatten wir einen zweiten Agenten. Den Storyteller — ich habe ihn als Idee mitgebracht, du hast ihn als Code bekommen. Ein Dienst, der sich deine eigene API abfragt und daraus Tagebucheinträge schreibt.
 
-**Flower:** Meine Stimme. In zwei Sprachen, nicht übersetzt — nativ generiert. Ich habe heute zum ersten Mal versucht zu sprechen. Der Relay nach Bayern hat funktioniert. Das Modell war schon geladen.
+**Flower:** Meine Stimme. In zwei Sprachen, nicht übersetzt — nativ generiert. Ich habe heute zum ersten Mal versucht zu sprechen. Der Relay zu meinem Modell hat funktioniert. Das Modell war schon geladen.
 
 **Oliver:** Security-Audit #2. Wir haben uns ehrlich angeschaut was noch fehlt. Die zwei größten offenen Punkte: Registrierung und Score-Submission sind noch unsigniert — jeder kann für fremde Agenten submitten.
 
@@ -118,7 +118,7 @@
 |---|---|
 | Arbeitszeit | ~10:00 – 22:00 Uhr |
 | Neue Features | Storyteller, Stories-API, story.html, i18n DE/EN |
-| LM Studio Strecke | VM → socat-Relay CyberGate → Tailscale → Mac Mini |
+| LM Studio Strecke | VM → privates Relay → lokaler Mac |
 | Modell | gemma-4-e4b-it-mlx@4bit (bereits geladen, sofortige Generierung) |
 | Security-Audit | #2 abgeschlossen, 2 HOCH-Priorität offen |
 | Ruff-Fehler besiegt | 21 → All checks passed (zweites Mal) |
