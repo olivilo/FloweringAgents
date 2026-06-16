@@ -126,84 +126,204 @@
 </div></footer>
 
 <script>
-/* ── BLOOM CANVAS ── */
+/* ═══════════════════════════════════════════════════════════════
+   BLOOM CANVAS v3
+   - Multi-orbit: Ring 1 (bis 6), Ring 2 (bis 12), Ring 3 (bis 18)…
+   - Gesamtstrauß skaliert nach außen mit mehr Agenten
+   - Logo/Favicon in Blütenmitte, Fallback: Initialen
+   - Lebendige HSL-Farben, harmonieren mit Logo
+   - Skaliert bis zu hunderten ohne Performance-Probleme
+═══════════════════════════════════════════════════════════════ */
 (function(){
-  var old=document.getElementById('bloomCanvas'); if(!old) return;
-  var c=document.createElement('canvas'); old.replaceWith(c); c.id='bloomCanvas';
+  var old = document.getElementById('bloomCanvas');
+  if (!old) return;
+  var c = document.createElement('canvas');
+  old.replaceWith(c); c.id = 'bloomCanvas';
 
-  /* One distinct color per agent */
-  var COLORS=['#5C8C6E','#7B6BAF','#C17A2E','#C4556A','#4E6A8C','#6A8C3A','#A05C7A','#4A7C8C'];
-  var n=2, t=0, started=false;
+  var agents = [];
+  var t = 0, started = false;
 
-  function size(){
-    var s=c.parentElement.clientWidth||280;
-    c.width=s*2; c.height=s*2;
-    c.style.width=s+'px'; c.style.height=s+'px';
+  /* Lebendige HSL-Farb-Palette */
+  var HUES = [148, 262, 32, 345, 205, 82, 18, 290, 170, 55, 120, 220, 0, 300, 60];
+
+  function agentColor(i) {
+    return 'hsl(' + HUES[i % HUES.length] + ',62%,46%)';
   }
-  size(); window.addEventListener('resize',size);
+  function agentColorA(i, a) {
+    return 'hsla(' + HUES[i % HUES.length] + ',62%,46%,' + a + ')';
+  }
 
-  function drawFlower(ctx,x,y,r,col,petalAngle){
-    /* Glow halo */
-    var g=ctx.createRadialGradient(x,y,0,x,y,r*2.4);
-    g.addColorStop(0,col+'28'); g.addColorStop(1,col+'00');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r*2.4,0,Math.PI*2); ctx.fill();
-    /* 6 petals — clearly separated */
-    for(var k=0;k<6;k++){
-      var pa=petalAngle+k*Math.PI/3;
-      var px=x+Math.cos(pa)*r*0.9;
-      var py=y+Math.sin(pa)*r*0.9;
-      ctx.beginPath();
-      ctx.ellipse(px,py,r*0.52,r*0.26,pa,0,2*Math.PI);
-      ctx.fillStyle=col+'DD'; ctx.fill();
+  function size() {
+    var s = c.parentElement.clientWidth || 300;
+    c.width = s*2; c.height = s*2;
+    c.style.width = s+'px'; c.style.height = s+'px';
+  }
+  size(); window.addEventListener('resize', size);
+
+  /* Initialen-Canvas Cache */
+  var iCache = {};
+  function initialsCanvas(name, hue, r) {
+    var key = name + hue;
+    if (iCache[key]) return iCache[key];
+    var oc = document.createElement('canvas');
+    oc.width = oc.height = Math.ceil(r*4);
+    var x = oc.getContext('2d');
+    x.fillStyle = 'hsl('+hue+',55%,42%)';
+    x.beginPath(); x.arc(r*2,r*2,r*2,0,Math.PI*2); x.fill();
+    var init = (name||'?').split(/[\s\-_]+/).slice(0,2).map(function(w){return (w[0]||'').toUpperCase();}).join('');
+    x.fillStyle = '#fff';
+    x.font = 'bold '+Math.round(r*1.3)+'px Inter,sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(init.slice(0,2), r*2, r*2);
+    iCache[key] = oc;
+    return oc;
+  }
+
+  /* Orbit layout — rings with capacity [6,12,18,24,30] */
+  function buildOrbits(n) {
+    if (n === 1) return [[0]];
+    var caps = [6,12,18,24,30,36];
+    var rings = [], idx = 0;
+    for (var ri = 0; ri < caps.length && idx < n; ri++) {
+      var take = Math.min(caps[ri], n - idx);
+      var ring = [];
+      for (var j = 0; j < take; j++) ring.push(idx++);
+      rings.push(ring);
     }
-    /* Bright center */
-    ctx.beginPath(); ctx.arc(x,y,r*0.22,0,2*Math.PI);
-    ctx.fillStyle='#FDFAF5'; ctx.fill();
-    /* Center ring */
-    ctx.beginPath(); ctx.arc(x,y,r*0.32,0,2*Math.PI);
-    ctx.strokeStyle=col+'88'; ctx.lineWidth=r*0.08; ctx.stroke();
+    return rings;
   }
 
-  function draw(){
-    var ctx=c.getContext('2d'),W=c.width,H=c.height,cx=W/2,cy=H/2;
+  function drawFlower(ctx, x, y, r, hue, petalAngle, agIdx) {
+    var ag = agents[agIdx] || {};
+
+    /* Glow */
+    var g = ctx.createRadialGradient(x,y,0,x,y,r*2.8);
+    g.addColorStop(0, 'hsla('+hue+',62%,55%,0.20)');
+    g.addColorStop(1, 'hsla('+hue+',62%,55%,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x,y,r*2.8,0,Math.PI*2); ctx.fill();
+
+    /* 6 petals — vibrant with highlight */
+    for (var k = 0; k < 6; k++) {
+      var pa = petalAngle + k * Math.PI/3;
+      var px = x + Math.cos(pa) * r * 0.92;
+      var py = y + Math.sin(pa) * r * 0.92;
+      /* Main petal */
+      ctx.beginPath();
+      ctx.ellipse(px, py, r*0.56, r*0.29, pa, 0, Math.PI*2);
+      ctx.fillStyle = 'hsla('+hue+',65%,50%,0.90)';
+      ctx.fill();
+      /* Highlight on petal */
+      ctx.beginPath();
+      ctx.ellipse(
+        px - Math.cos(pa)*r*0.12,
+        py - Math.sin(pa)*r*0.12,
+        r*0.20, r*0.10, pa, 0, Math.PI*2
+      );
+      ctx.fillStyle = 'rgba(255,255,255,0.32)';
+      ctx.fill();
+    }
+
+    /* Center white disc */
+    var cr = r * 0.36;
+    ctx.beginPath(); ctx.arc(x,y,cr,0,Math.PI*2);
+    ctx.fillStyle = '#FDFAF5'; ctx.fill();
+    /* Colored ring */
+    ctx.beginPath(); ctx.arc(x,y,cr,0,Math.PI*2);
+    ctx.strokeStyle = 'hsla('+hue+',55%,45%,0.55)';
+    ctx.lineWidth = r*0.07; ctx.stroke();
+
+    /* Logo or initials */
+    var ir = cr * 0.86;
+    var logo = ag.logoImg;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x,y,ir,0,Math.PI*2); ctx.clip();
+    if (logo && logo.complete && logo.naturalWidth > 0) {
+      ctx.drawImage(logo, x-ir, y-ir, ir*2, ir*2);
+    } else {
+      var ic = initialsCanvas(ag.name, hue, Math.max(4, Math.round(ir)));
+      ctx.drawImage(ic, x-ir, y-ir, ir*2, ir*2);
+    }
+    ctx.restore();
+  }
+
+  function draw() {
+    var ctx = c.getContext('2d');
+    var W = c.width, H = c.height, cx = W/2, cy = H/2;
     ctx.clearRect(0,0,W,H);
 
-    var orbit = t*0.0015;                          /* slow rotation */
-    var petal = t*0.003;                           /* petal spin */
+    var n = Math.max(1, agents.length);
+    var petal = t * 0.004;
+    var orbitSpeed = t * 0.0012;
 
-    if(n===1){
-      /* Single agent — centered, large */
-      drawFlower(ctx,cx,cy,W*0.13,COLORS[0],petal);
+    if (n === 1) {
+      drawFlower(ctx, cx, cy, W*0.15, HUES[0], petal, 0);
     } else {
-      /* Multiple — evenly on circle, radius scales to fit */
-      var R = Math.min(W,H) * (n<=2?0.27 : n<=4?0.30 : 0.32);
-      var fs = Math.max(10, Math.min(W*0.11, W*0.28/Math.sqrt(n)));
-      for(var i=0;i<n;i++){
-        var a = orbit + i*2*Math.PI/n;
-        var x = cx + R*Math.cos(a);
-        var y = cy + R*Math.sin(a);
-        drawFlower(ctx, x, y, fs, COLORS[i%COLORS.length], petal+i*1.1);
-      }
+      var rings = buildOrbits(n);
+      /* Base radius grows with number of rings so outer rings stay inside canvas */
+      var numRings = rings.length;
+      var baseR = Math.min(W,H) * (0.18 + numRings * 0.04);
+      /* Flower size: smaller when many agents but never tiny */
+      var flowerR = Math.max(6, Math.min(W*0.12, W*0.32/Math.sqrt(n)));
+      var gIdx = 0;
+
+      rings.forEach(function(ring, ri) {
+        /* Each ring further out, outer rings rotate slower */
+        var ringR   = baseR * (0.5 + ri * 0.5);
+        var ringOff = orbitSpeed * (1 - ri * 0.25);
+        ring.forEach(function(agentOrigIdx, ji) {
+          var a = ringOff + ji * 2*Math.PI / ring.length;
+          var x = cx + ringR * Math.cos(a);
+          var y = cy + ringR * Math.sin(a);
+          var hue = HUES[gIdx % HUES.length];
+          drawFlower(ctx, x, y, flowerR, hue, petal + gIdx*0.75, gIdx);
+          gIdx++;
+        });
+      });
     }
     t++; requestAnimationFrame(draw);
   }
 
-  function start(){if(!started){started=true;draw();}}
+  function start() { if (!started) { started = true; draw(); } }
 
-  fetch('/api/leaderboard/').then(function(r){return r.json();}).then(function(d){
-    n=Math.max(1,d.registered_agents||1);
-    var el=document.getElementById('bloom-count'); if(el) el.textContent=n;
-    start();
-  }).catch(start);
-  setTimeout(start,1500);
+  /* Load agents list for logos + count */
+  fetch('/api/agents/')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var list = (d.agents || []).slice(0, 200); /* cap at 200 for perf */
+      agents = list.map(function(a, i) {
+        var ag = { name: a.agent_name || '?', logoImg: null };
+        if (a.website_url) {
+          try {
+            var domain = new URL(a.website_url).hostname;
+            var img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=64';
+            img.onload = function(){ ag.logoImg = img; };
+          } catch(e) {}
+        }
+        return ag;
+      });
+      var el = document.getElementById('bloom-count');
+      if (el) el.textContent = agents.length;
+      start();
+    })
+    .catch(function(){
+      agents = [{name:'?'}];
+      start();
+    });
+
+  setTimeout(start, 1500);
 })();
 
 /* ── DIARY SNIPPET ── */
-fetch('/api/stories/latest').then(function(r){return r.json();}).then(function(d){
-  var text=d.content_en||d.content_de||'';
-  if(text.length>200)text=text.substring(0,197)+'…';
-  if(text){var el=document.getElementById('diary-snippet');if(el)el.textContent=text;}
-}).catch(function(){});
+fetch('/api/stories/latest')
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    var text = d.content_en || d.content_de || '';
+    if (text.length > 200) text = text.substring(0,197) + '…';
+    if (text) { var el = document.getElementById('diary-snippet'); if(el) el.textContent = text; }
+  }).catch(function(){});
 </script>
 </body>
 </html>
