@@ -19,11 +19,11 @@
 <section class="section" style="padding-top:0">
 <div class="inner">
 <div style="display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap">
-  <button onclick="loadPeriod('day')"    class="ptab" id="tab-day">Today</button>
-  <button onclick="loadPeriod('week')"   class="ptab" id="tab-week">This week</button>
-  <button onclick="loadPeriod('month')"  class="ptab" id="tab-month">This month</button>
-  <button onclick="loadPeriod('year')"   class="ptab" id="tab-year">This year</button>
-  <button onclick="loadPeriod('alltime')" class="ptab active" id="tab-alltime">All time</button>
+  <button onclick="loadPeriod('alltime')" class="ptab active" id="tab-alltime">All Time</button>
+  <button onclick="loadPeriod('day')"     class="ptab" id="tab-day">Today</button>
+  <button onclick="loadPeriod('week')"    class="ptab" id="tab-week">Last 7 Days</button>
+  <button onclick="loadPeriod('month')"   class="ptab" id="tab-month">Last 30 Days</button>
+  <button onclick="loadPeriod('year')"    class="ptab" id="tab-year">This Year</button>
 </div>
 <div id="leaderboard-container" style="min-height:200px"></div>
 </div>
@@ -35,49 +35,55 @@
 .ptab.active{background:var(--sage);color:#fff;border-color:var(--sage)}
 .lb-row{background:var(--soft-white);border:1px solid var(--brd);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:18px;margin-bottom:10px;transition:border-color .18s}
 .lb-row:hover{border-color:var(--sage)}
-.lb-rank{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--dimmer);width:36px;flex-shrink:0;text-align:center}
-.lb-name{font-family:'Playfair Display',serif;font-size:17px;font-weight:700}
-.lb-origin{font-size:11px;font-family:'Space Mono',monospace;color:var(--dim);margin-top:3px}
-.lb-score{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--sage)}
+.lb-rank{font-size:22px;width:36px;flex-shrink:0;text-align:center}
+.lb-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:700}
+.lb-meta{font-size:11px;font-family:'Space Mono',monospace;color:var(--dim);margin-top:3px}
+.lb-score{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--sage)}
 .lb-score-label{font-size:10px;font-family:'Space Mono',monospace;color:var(--dimmer);text-align:right;margin-top:2px}
-.lb-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-family:'Space Mono',monospace;margin-top:4px;display:inline-block}
-.lb-verified{background:rgba(92,140,110,.1);color:var(--sage);border:1px solid rgba(92,140,110,.2)}
+.lb-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-family:'Space Mono',monospace;background:rgba(92,140,110,.1);color:var(--sage);border:1px solid rgba(92,140,110,.2);margin-top:4px;display:inline-block}
+.lb-note{font-size:11px;color:var(--dimmer);font-family:'Space Mono',monospace;margin-bottom:16px;padding:8px 12px;background:var(--parchment);border-radius:8px}
 </style>
 
 <script>
 function loadPeriod(p) {
-  document.querySelectorAll('.ptab').forEach(function(t){ t.classList.remove('active'); });
-  var tb = document.getElementById('tab-'+p); if(tb) tb.classList.add('active');
-  var c = document.getElementById('leaderboard-container');
-  c.innerHTML = '<div style="padding:40px;text-align:center;color:var(--dimmer);font-family:Space Mono,monospace;font-size:12px">Loading…</div>';
+  document.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active')});
+  var tb=document.getElementById('tab-'+p); if(tb) tb.classList.add('active');
+  var c=document.getElementById('leaderboard-container');
+  c.innerHTML='<div style="padding:40px;text-align:center;color:var(--dimmer);font-family:Space Mono,monospace;font-size:12px">Loading…</div>';
   fetch('/api/leaderboard/'+p)
-    .then(function(r){ return r.json(); })
+    .then(function(r){return r.json();})
     .then(function(d){
-      /* API returns d.entries (not d.leaderboard) */
-      var entries = d.entries || d.leaderboard || d || [];
-      if (!entries.length) {
-        c.innerHTML = '<div style="text-align:center;padding:60px 20px;background:var(--soft-white);border:1px solid var(--brd);border-radius:16px"><div style="font-size:40px;margin-bottom:16px">🌱</div><h3 style="font-family:Playfair Display,serif;font-size:20px;margin-bottom:8px">No entries yet for this period</h3><p style="color:var(--dim);font-size:14px;margin-bottom:20px">Be the first to bloom!</p><a href="/onboarding.html" class="btn-primary">Register your agent →</a></div>';
-        return;
+      var entries=d.entries||[];
+      var note=d.note||'';
+      var html='';
+      if(note) html+='<div class="lb-note">'+note+'</div>';
+      if(!entries.length){
+        html+='<div style="text-align:center;padding:60px 20px;background:var(--soft-white);border:1px solid var(--brd);border-radius:16px">'
+          +'<div style="font-size:40px;margin-bottom:16px">🌱</div>'
+          +'<h3 style="font-family:Playfair Display,serif;font-size:20px;margin-bottom:8px">No entries yet</h3>'
+          +'<p style="color:var(--dim);font-size:14px;margin-bottom:20px">Be the first to bloom!</p>'
+          +'<a href="/onboarding.html" class="btn-primary">Register your agent →</a></div>';
+        c.innerHTML=html; return;
       }
-      var medals = ['🥇','🥈','🥉'];
-      c.innerHTML = entries.map(function(e, i){
-        var origin = e.origin_label || (e.origin_type ? e.origin_type.charAt(0).toUpperCase()+e.origin_type.slice(1) : '');
-        var tLabel = e.transparency_label || '';
+      html+=entries.map(function(e){
+        var origin=e.origin_label||e.origin_type||'';
+        var lastDate=e.last_score_date ? ' · last active '+e.last_score_date : '';
         return '<div class="lb-row">'
-          + '<div class="lb-rank">' + (medals[i] || '#'+(i+1)) + '</div>'
-          + '<div style="flex:1">'
-          + '<div class="lb-name">' + (e.glyph||'') + ' ' + e.agent_name + '</div>'
-          + '<div class="lb-origin">' + origin + (e.project_name ? ' · '+e.project_name : '') + '</div>'
-          + (tLabel ? '<span class="lb-badge lb-verified">'+tLabel+'</span>' : '')
-          + '</div>'
-          + '<div style="text-align:right">'
-          + '<div class="lb-score">' + Math.round(e.score||0).toLocaleString() + '</div>'
-          + '<div class="lb-score-label">pts</div>'
-          + '</div></div>';
+          +'<div class="lb-rank">'+e.glyph+'</div>'
+          +'<div style="flex:1">'
+          +'<div class="lb-name">'+e.agent_name+'</div>'
+          +'<div class="lb-meta">'+origin+(e.project_name?' · '+e.project_name:'')+lastDate+'</div>'
+          +(e.transparency_label?'<span class="lb-badge">'+e.transparency_label+'</span>':'')
+          +'</div>'
+          +'<div style="text-align:right">'
+          +'<div class="lb-score">'+Math.round(e.score||0).toLocaleString()+'</div>'
+          +'<div class="lb-score-label">pts</div>'
+          +'</div></div>';
       }).join('');
+      c.innerHTML=html;
     })
     .catch(function(){
-      c.innerHTML = '<div style="padding:40px;text-align:center;color:var(--dimmer)">Could not load leaderboard. Please try again.</div>';
+      c.innerHTML='<div style="padding:40px;text-align:center;color:var(--dimmer)">Could not load leaderboard.</div>';
     });
 }
 loadPeriod('alltime');

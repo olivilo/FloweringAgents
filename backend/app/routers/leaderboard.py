@@ -2,16 +2,14 @@
 FloweringAgents — Leaderboard routes
 Live rankings from Redis Sorted Sets + DB fallback
 
-Logik:
-- day:     Scores von heute. Falls leer → "no scores today yet" (korrekt)
-- week:    Bestes Tagesergebnis pro Agent in der aktuellen Woche (Mo–So)
-- month:   Kumulierter Score des aktuellen Monats
+- day:     Scores von heute
+- week:    Letzte 7 Tage (rolling)
+- month:   Letzte 30 Tage (rolling)
 - year:    Kumulierter Score des aktuellen Jahres
 - alltime: Höchster je erreichter Score pro Agent
 
-Wenn "day" leer ist → Fallback: zeige alltime-Scores mit "last seen" Datum.
-So erscheinen registrierte Agenten IMMER im Leaderboard, nicht nur wenn sie
-heute etwas submitted haben.
+Standard-Ansicht: alltime — Agenten erscheinen IMMER.
+registered_agents kommt aus der DB (eindeutig), nicht aus Redis.
 """
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,11 +35,11 @@ async def get_redis():
 
 
 PERIOD_LABELS = {
-    "day":     "Today",
-    "week":    "This Week",
-    "month":   "This Month",
-    "year":    "This Year",
     "alltime": "All Time",
+    "day":     "Today",
+    "week":    "Last 7 Days",
+    "month":   "Last 30 Days",
+    "year":    "This Year",
 }
 GENESIS_LABELS = {
     "seedling":     "🌱 Seedling",
@@ -51,105 +49,69 @@ GENESIS_LABELS = {
     "transformer":  "🔄 Transformer",
     "legacy":       "🌊 Legacy Carrier",
 }
-TRANSPARENCY_LABELS = {
-    0: "Ghost", 1: "Named", 2: "Verified", 3: "Trusted", 4: "Attested"
-}
-FLOWER_GLYPHS = ["🌸", "🌺", "🌼", "🌻", "🌷", "🪷", "💐", "🌹", "🏵️", "🌾"]
+TRANSPARENCY_LABELS = {0:"Ghost",1:"Named",2:"Verified",3:"Trusted",4:"Attested"}
+FLOWER_GLYPHS = ["🌸","🌺","🌼","🌻","🌷","🪷","💐","🌹","🏵️","🌾"]
 
 
 def _period_keys(period: str) -> list[str]:
-    """Return all Redis keys relevant for this period (newest first)."""
     today = date.today()
-
     if period == "day":
-        # Today only
         return [f"lb:day:{today.isoformat()}"]
-
     elif period == "week":
-        # All days Mon–today this week
-        monday = today - timedelta(days=today.weekday())
-        keys = []
-        d = monday
-        while d <= today:
-            keys.append(f"lb:day:{d.isoformat()}")
-            d += timedelta(days=1)
-        return keys
-
+        return [f"lb:day:{(today-timedelta(days=i)).isoformat()}" for i in range(7)]
     elif period == "month":
-        return [f"lb:month:{today.strftime('%Y-%m')}"]
-
+        return [f"lb:day:{(today-timedelta(days=i)).isoformat()}" for i in range(30)]
     elif period == "year":
         return [f"lb:year:{today.year}"]
-
     return ["lb:alltime"]
 
 
-async def _best_scores_from_keys(redis, keys: list[str], limit: int) -> dict:
-    """
-    Merge multiple Redis sorted sets → best score per agent.
-    Returns {agent_json: score}
-    """
-    best: dict[str, float] = {}
+async def _best_from_redis(redis, keys: list[str], limit: int) -> list:
+    """Merge Redis keys → best score per agent_id."""
+    best: dict[str, tuple] = {}
     for key in keys:
         entries = await redis.zrevrangebyscore(
             key, "+inf", "-inf", withscores=True, start=0, num=200
         )
         for member_json, score in entries:
             try:
-                m = json.loads(member_json)
-                aid = m.get("agent_id", member_json)
+                aid = json.loads(member_json).get("agent_id", member_json)
             except Exception:
                 aid = member_json
             if aid not in best or score > best[aid][1]:
                 best[aid] = (member_json, score)
-
-    # Sort by score desc, take limit
-    sorted_entries = sorted(best.values(), key=lambda x: x[1], reverse=True)[:limit]
-    return sorted_entries
+    return sorted(best.values(), key=lambda x: x[1], reverse=True)[:limit]
 
 
-async def _db_fallback(db: AsyncSession, limit: int) -> list[dict]:
-    """
-    When Redis has no data for today: query DB for best score per agent.
-    Returns formatted leaderboard rows.
-    """
-    # Get best score per agent from DB
-    result = await db.execute(
-        text("""
-            SELECT
-                ds.agent_id,
-                a.agent_name,
-                a.project_name,
-                a.origin_type,
-                a.transparency_level,
-                a.genesis_mult,
-                a.human_oversight_pct,
-                MAX(ds.final_score) as best_score,
-                MAX(ds.score_date)  as last_score_date
-            FROM daily_scores ds
-            JOIN agents a ON a.agent_id = ds.agent_id
-            GROUP BY ds.agent_id, a.agent_name, a.project_name,
-                     a.origin_type, a.transparency_level,
-                     a.genesis_mult, a.human_oversight_pct
-            ORDER BY best_score DESC
-            LIMIT :limit
-        """),
-        {"limit": limit}
-    )
-    rows = result.fetchall()
-    return rows
+async def _db_fallback(db: AsyncSession, limit: int):
+    """DB query — always returns something, even if Redis is empty."""
+    result = await db.execute(text("""
+        SELECT ds.agent_id, a.agent_name, a.project_name,
+               a.origin_type, a.transparency_level, a.genesis_mult,
+               a.human_oversight_pct,
+               MAX(ds.final_score) as best_score,
+               MAX(ds.score_date)  as last_score_date
+        FROM daily_scores ds
+        JOIN agents a ON a.agent_id = ds.agent_id
+        GROUP BY ds.agent_id, a.agent_name, a.project_name,
+                 a.origin_type, a.transparency_level,
+                 a.genesis_mult, a.human_oversight_pct
+        ORDER BY best_score DESC
+        LIMIT :limit
+    """), {"limit": limit})
+    return result.fetchall()
 
 
-def _format_row(i: int, member_json: str, score: float) -> dict:
+def _format_redis(i: int, member_json: str, score: float) -> dict:
     try:
         m = json.loads(member_json)
     except Exception:
         m = {}
-    origin  = m.get("origin_type", "collaborator")
+    origin  = m.get("origin_type", "sprout")
     t_level = m.get("transparency_level", 0)
     return {
-        "rank":               i + 1,
-        "glyph":              FLOWER_GLYPHS[i] if i < len(FLOWER_GLYPHS) else str(i + 1),
+        "rank":               i+1,
+        "glyph":              FLOWER_GLYPHS[i] if i < len(FLOWER_GLYPHS) else f"#{i+1}",
         "agent_id":           m.get("agent_id"),
         "agent_name":         m.get("agent_name"),
         "project_name":       m.get("project_name"),
@@ -157,21 +119,21 @@ def _format_row(i: int, member_json: str, score: float) -> dict:
         "origin_label":       GENESIS_LABELS.get(origin, origin),
         "transparency_level": t_level,
         "transparency_label": TRANSPARENCY_LABELS.get(t_level, "Ghost"),
-        "transparency_mult":  m.get("transparency_mult", 0.15),
-        "genesis_mult":       m.get("genesis_mult", 0.14),
-        "human_oversight_pct":m.get("human_oversight_pct", 50),
+        "transparency_mult":  m.get("transparency_mult", 0.65),
+        "genesis_mult":       m.get("genesis_mult", 1.0),
+        "human_oversight_pct":m.get("human_oversight_pct", 10),
         "score":              round(score, 2),
         "is_personal_best":   False,
         "from_cache":         True,
     }
 
 
-def _format_db_row(i: int, row) -> dict:
-    origin  = str(row.origin_type).replace("OriginType.", "")
+def _format_db(i: int, row) -> dict:
+    origin  = str(row.origin_type).replace("OriginType.","")
     t_level = row.transparency_level or 0
     return {
-        "rank":               i + 1,
-        "glyph":              FLOWER_GLYPHS[i] if i < len(FLOWER_GLYPHS) else str(i + 1),
+        "rank":               i+1,
+        "glyph":              FLOWER_GLYPHS[i] if i < len(FLOWER_GLYPHS) else f"#{i+1}",
         "agent_id":           row.agent_id,
         "agent_name":         row.agent_name,
         "project_name":       row.project_name,
@@ -179,8 +141,8 @@ def _format_db_row(i: int, row) -> dict:
         "origin_label":       GENESIS_LABELS.get(origin, origin),
         "transparency_level": t_level,
         "transparency_label": TRANSPARENCY_LABELS.get(t_level, "Ghost"),
-        "transparency_mult":  TRANSPARENCY_LABELS.get(t_level, "Ghost"),
-        "genesis_mult":       float(row.genesis_mult or 0.14),
+        "transparency_mult":  0.65,
+        "genesis_mult":       float(row.genesis_mult or 1.0),
         "human_oversight_pct":float(row.human_oversight_pct or 10),
         "score":              round(float(row.best_score), 2),
         "last_score_date":    str(row.last_score_date),
@@ -194,31 +156,21 @@ async def leaderboard_overview(
     redis=Depends(get_redis),
     db: AsyncSession = Depends(get_db),
 ):
-    alltime_key   = "lb:alltime"
-    total_agents  = await redis.zcard(alltime_key)
+    # ALWAYS count from DB — eindeutig, keine Redis-Duplikate
+    result = await db.execute(select(func.count()).select_from(Agent))
+    total_agents = result.scalar() or 0
 
-    # If Redis is empty, count from DB
-    if total_agents == 0:
-        result = await db.execute(select(func.count()).select_from(Agent))
-        total_agents = result.scalar() or 0
+    today        = date.today()
+    active_today = await redis.zcard(f"lb:day:{today.isoformat()}")
 
-    today      = date.today()
-    day_key    = f"lb:day:{today.isoformat()}"
-    active_today = await redis.zcard(day_key)
-
-    top = await redis.zrevrangebyscore(
-        alltime_key, "+inf", "-inf", withscores=True, start=0, num=1
-    )
+    # Best alltime from DB
+    top_rows = await _db_fallback(db, 1)
     leader = None
-    if top:
-        try:
-            m = json.loads(top[0][0])
-            leader = {
-                "agent_name": m.get("agent_name"),
-                "score":      round(top[0][1], 2),
-            }
-        except Exception:
-            pass
+    if top_rows:
+        leader = {
+            "agent_name": top_rows[0].agent_name,
+            "score":      round(float(top_rows[0].best_score), 2),
+        }
 
     return {
         "registered_agents": total_agents,
@@ -236,29 +188,25 @@ async def get_leaderboard(
     db: AsyncSession = Depends(get_db),
 ):
     if period not in PERIOD_LABELS:
-        raise HTTPException(
-            400, f"Period must be one of: {list(PERIOD_LABELS.keys())}"
-        )
+        raise HTTPException(400, f"Period must be one of: {list(PERIOD_LABELS.keys())}")
 
     keys    = _period_keys(period)
-    entries = await _best_scores_from_keys(redis, keys, limit)
+    entries = await _best_from_redis(redis, keys, limit)
 
-    # ── Fallback: Redis empty → use DB ───────────────────────────────────
+    # Always fall back to DB if Redis empty
     if not entries:
         db_rows = await _db_fallback(db, limit)
-        rows = [_format_db_row(i, row) for i, row in enumerate(db_rows)]
+        rows    = [_format_db(i, r) for i, r in enumerate(db_rows)]
         return {
             "period":       period,
             "period_label": PERIOD_LABELS[period],
             "entries":      rows,
             "total":        len(rows),
             "updated_at":   date.today().isoformat(),
-            "note":         "Showing all-time best scores. Submit today's score to update.",
+            "note":         "Showing all-time best. Submit today's score to update.",
         }
 
-    rows = [_format_row(i, member_json, score)
-            for i, (member_json, score) in enumerate(entries)]
-
+    rows = [_format_redis(i, m, s) for i, (m, s) in enumerate(entries)]
     return {
         "period":       period,
         "period_label": PERIOD_LABELS[period],
