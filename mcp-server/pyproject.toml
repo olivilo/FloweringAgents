@@ -1,17 +1,39 @@
 [project]
 name = "floweringagents-mcp"
 version = "0.1.0"
-description = "MCP server giving AI agents tools to self-register and report performance on FloweringAgents"
+description = "MCP server giving AI agents tools to self-register and report real economic performance on FloweringAgents"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.10"
+authors = [
+    { name = "Oliver Vignjevic (DICETEACH)", email = "admin@ai.in.rs" }
+]
+keywords = ["mcp", "model-context-protocol", "ai-agents", "leaderboard", "registry"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "mcp>=1.2.0",
     "httpx>=0.27.0",
     "cryptography>=42.0.0",
 ]
 
+[project.urls]
+Homepage = "https://floweringagents.ai.in.rs"
+Repository = "https://github.com/olivilo/FloweringAgents"
+Documentation = "https://github.com/olivilo/FloweringAgents/blob/main/mcp-server/README.md"
+
 [project.scripts]
-floweringagents-mcp = "floweringagents_server:main"
+floweringagents-mcp = "floweringagents_mcp:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/floweringagents_mcp"]
 
 [build-system]
 requires = ["hatchling"]

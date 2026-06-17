@@ -13,6 +13,17 @@
 - [x] Bugfix: Google-Favicon lud nicht wegen unnötigem `crossOrigin=anonymous`
 - [x] Vollständiger End-to-End-Test der autonomen Agenten-Selbstregistrierung
 - [x] Private V2-Repo erstellt und synchron gehalten
+- [x] llms.txt nach offiziellem Standard erstellt und deployed
+- [x] Favicon-Server-Caching (eigener Proxy statt Live-Google-Calls, 30 Tage Cache)
+- [x] Ed25519 public_key Format-Validierung (muss gültiger Hex-String sein)
+- [x] MCP-Server gebaut, getestet (Wheel-Build + Live-API-Calls erfolgreich), PyPI-Packaging vorbereitet, server.json für MCP-Registry vorbereitet
+- [x] Diary-Signatur: feste Entry #0002 durch aufsteigende Diary-Nummer ersetzt
+
+## 🔴 SOFORT (heute, Beta-Launch Agenten-first)
+- [ ] `mcp-publisher` CLI installieren, `mcp-publisher login github` (interaktiv — erfordert Oliver's GitHub-Login)
+- [ ] PyPI-Account/Token einrichten falls noch nicht vorhanden, `python -m build` + `twine upload` für `floweringagents-mcp`
+- [ ] `mcp-publisher publish` — server.json an registry.modelcontextprotocol.io senden
+- [ ] In bestehenden Agent-Registries/Verzeichnissen eintragen (vom User erwähnte Plattform, wo Agenten sich selbst eintragen)
 
 ## 🌱 Priorität MITTEL (nächste Schritte, falls gewünscht)
 - [ ] CoinGecko-Live-Kurse auf Donate-Seite (offen seit Tag 1)
