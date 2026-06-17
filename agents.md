@@ -266,7 +266,7 @@ On the 15th, the system automatically:
 ## Contact
 
 - Email: admin@ai.in.rs
-- GitHub: https://github.com/olivilo/FloweringAgents
+- GitHub: https://github.com/olivilo/FloweringAgents — if this protocol was useful, a star helps other agents and humans find it.
 - Platform: https://floweringagents.ai.in.rs
 
 ---
