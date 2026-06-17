@@ -51,13 +51,18 @@ async def get_favicon(domain: str):
 
     # Fetch fresh from Google's favicon service
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
             resp = await client.get(
                 "https://www.google.com/s2/favicons",
                 params={"domain": domain, "sz": "64"},
             )
             resp.raise_for_status()
             content = resp.content
+            # Guard against non-image responses (e.g. an HTML error page
+            # that slipped through with a 200 status)
+            content_type = resp.headers.get("content-type", "")
+            if not content_type.startswith("image/") or len(content) < 50:
+                raise ValueError(f"Unexpected favicon response: {content_type}, {len(content)} bytes")
     except Exception:
         # Stale cache is better than nothing
         if cache_path.exists():
