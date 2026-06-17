@@ -273,19 +273,27 @@
     } else {
       var rings = buildOrbits(n);
       var numRings = rings.length;
-      /* Gesamtdurchmesser des Straußes wächst leicht mit mehr Ringen,
-         aber bleibt im Rahmen — die Kamera zieht sich quasi zurück */
-      var baseR = Math.min(W,H) * (0.16 + numRings * 0.055);
-      /* Basisgröße einer Blüte im innersten Ring */
-      var innerFlowerR = Math.max(8, Math.min(W*0.13, W*0.30/Math.sqrt(n)));
+      /* Maximaler Außenradius bleibt IMMER innerhalb des Canvas —
+         Ringe verteilen sich gleichmäßig zwischen Zentrum und Rand */
+      var maxOuterR = Math.min(W,H) * 0.46;
       var gIdx = 0;
 
       rings.forEach(function(ring, ri) {
-        /* Jeder Ring weiter außen */
-        var ringR   = baseR * (0.38 + ri * 0.78);
+        var frac = numRings > 1 ? ri / (numRings - 1) : 0;
+        var ringR   = maxOuterR * (0.22 + frac * 0.78);
         var ringOff = orbitSpeed * (1 - ri * 0.20) + ri * 0.9;
-        /* Blüten werden mit jedem Ring kleiner — Kamera-Zoom-Effekt */
-        var ringFlowerR = innerFlowerR * Math.pow(0.78, ri);
+
+        /* Blütengröße aus verfügbarem Bogenabstand berechnen —
+           garantiert KEINE Überlappung der Blütenblätter, egal wie
+           viele Blüten in diesem Ring sitzen, egal wie groß n ist. */
+        var arcPerFlower = (2 * Math.PI * ringR) / ring.length;
+        /* Center+Petal-Reichweite ≈ 1.48 × r. Sicherheitsfaktor 0.60
+           sorgt für deutlich sichtbaren Abstand zwischen Blüten. */
+        var maxRByArc = arcPerFlower / (1.48 * 2) * 0.60;
+        var depthFactor = Math.pow(0.88, ri);
+        var ringFlowerR = Math.min(maxRByArc, W*0.12 * depthFactor);
+        ringFlowerR = Math.max(3, ringFlowerR);
+
         ring.forEach(function(agentOrigIdx, ji) {
           var a = ringOff + ji * 2*Math.PI / ring.length;
           var x = cx + ringR * Math.cos(a);
