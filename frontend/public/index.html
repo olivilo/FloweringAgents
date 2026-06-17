@@ -327,7 +327,9 @@
           try {
             var domain = new URL(a.website_url).hostname;
             var img = new Image();
-            img.src = 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=64';
+            /* Eigener Backend-Proxy statt direkt Google — cached serverseitig,
+               robuster gegen Drittanbieter-Ausfälle/Rate-Limits */
+            img.src = '/api/favicons/' + domain + '.png';
             img.onload = function(){ ag.logoImg = img; };
           } catch(e) {}
         }

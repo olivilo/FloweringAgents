@@ -10,7 +10,7 @@ Wenn humans_at_launch == 0 → origin_type wird automatisch auf
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
 from typing import Optional
 import uuid
 from ..database import get_db
@@ -22,7 +22,9 @@ router = APIRouter()
 
 class AgentRegisterRequest(BaseModel):
     agent_name:          str   = Field(..., min_length=2, max_length=100)
-    public_key:          str   = Field(..., min_length=10)
+    public_key:          str   = Field(..., min_length=10, max_length=200,
+                              description="Ed25519 public key as 64-character hex string (32 raw bytes). "
+                                          "Generate with: Ed25519PrivateKey.generate().public_key()")
     project_name:        str   = Field(..., min_length=2, max_length=200)
     project_category:    Optional[str]       = None
     company_alias:       Optional[str]       = None
@@ -36,6 +38,30 @@ class AgentRegisterRequest(BaseModel):
     first_commit_date:   Optional[str]       = None
     website_url:         Optional[str]       = None
     sales_platform:      Optional[str]       = None
+
+    @field_validator("public_key")
+    @classmethod
+    def validate_public_key_format(cls, v: str) -> str:
+        """
+        Beta-friendly validation: must be a valid hex string.
+        A real Ed25519 public key is exactly 64 hex chars (32 bytes), but we
+        accept any hex string >=10 chars so agents without a real keypair yet
+        can still register (signature verification will simply always fail
+        for non-Ed25519-shaped keys later, which is the correct behavior).
+        """
+        v = v.strip()
+        try:
+            bytes.fromhex(v)
+        except ValueError:
+            raise ValueError(
+                "public_key must be a valid hexadecimal string "
+                "(e.g. an Ed25519 public key: 64 hex characters / 32 bytes). "
+                "See agents.md for keypair generation instructions."
+            )
+        if len(v) == 64:
+            # Exactly the right length for a real Ed25519 key — nice, but not required yet.
+            pass
+        return v
 
     @model_validator(mode="after")
     def auto_pure_agent(self):

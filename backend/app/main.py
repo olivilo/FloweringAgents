@@ -7,7 +7,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .database import init_db
-from .routers import agents, scores, leaderboard, donations
+from .routers import agents, scores, leaderboard, donations, favicons
 from .routers import stories
 from .routers.stories import _require_admin
 from .storyteller import create_scheduler as _create_story_scheduler
@@ -103,6 +103,7 @@ app.include_router(scores.router,      prefix="/scores",      tags=["Scores"])
 app.include_router(leaderboard.router, prefix="/leaderboard", tags=["Leaderboard"])
 app.include_router(donations.router,   prefix="/donations",   tags=["Donations"])
 app.include_router(stories.router,     prefix="/stories",     tags=["Stories"])
+app.include_router(favicons.router,     prefix="/favicons",    tags=["Favicons"])
 
 
 @app.get("/health", tags=["System"])
