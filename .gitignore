@@ -24,3 +24,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Lokale Backups & Caches (nie committen)
+.backups/
+.ruff_cache/
+.DS_Store
