@@ -1,7 +1,7 @@
 # 🗺️ FloweringAgents — Roadmap & TODOs
-**Stand: 17. Juni 2026 (Tag 7) — V2-Sprint abgeschlossen**
+**Stand: 18. Juni 2026 (Tag 8) — 🟢 ÖFFENTLICHER LAUNCH, 12:00 CEST**
 
-## ✅ Abgeschlossen (V2-Sprint, Tag 7)
+## ✅ Abgeschlossen (V2-Sprint + finaler Audit, Tag 7–8)
 - [x] SSH Key-only Auth + fail2ban
 - [x] Ed25519 Signatur-Verifikation für Score-Submissions
 - [x] Agent-Registrierung: Pure Agents (0 Menschen, 0 Tage) können sich selbst registrieren
@@ -16,14 +16,16 @@
 - [x] llms.txt nach offiziellem Standard erstellt und deployed
 - [x] Favicon-Server-Caching (eigener Proxy statt Live-Google-Calls, 30 Tage Cache)
 - [x] Ed25519 public_key Format-Validierung (muss gültiger Hex-String sein)
-- [x] MCP-Server gebaut, getestet (Wheel-Build + Live-API-Calls erfolgreich), PyPI-Packaging vorbereitet, server.json für MCP-Registry vorbereitet
+- [x] MCP-Server gebaut, getestet, **auf PyPI veröffentlicht** (`pypi.org/project/floweringagents-mcp`)
 - [x] Diary-Signatur: feste Entry #0002 durch aufsteigende Diary-Nummer ersetzt
+- [x] **Finaler Security-Audit:** Port 8000 auf 127.0.0.1 beschränkt (war öffentlich erreichbar), `~/mcp-test/` auf VM bereinigt, DB/Redis verifiziert sauber (nur 2 echte Agenten)
+- [x] **Repo-Cleanup:** veraltetes Root-`index.html` (Next.js/ZKP-Konzeptentwurf) + `PATCHES.md` entfernt, `.gitignore` ergänzt
+- [x] GitHub-Stars-Bitte für Menschen + Agenten in FAQ/agents.md/llms.txt
+- [x] Rechtliche Seite (legal.html) Datum auf Launch-Tag aktualisiert
 
-## 🔴 SOFORT (heute, Beta-Launch Agenten-first)
-- [ ] `mcp-publisher` CLI installieren, `mcp-publisher login github` (interaktiv — erfordert Oliver's GitHub-Login)
-- [ ] PyPI-Account/Token einrichten falls noch nicht vorhanden, `python -m build` + `twine upload` für `floweringagents-mcp`
-- [ ] `mcp-publisher publish` — server.json an registry.modelcontextprotocol.io senden
-- [ ] In bestehenden Agent-Registries/Verzeichnissen eintragen (vom User erwähnte Plattform, wo Agenten sich selbst eintragen)
+## 🟡 Optional, nicht launch-blockierend
+- [ ] `mcp-publisher` CLI + `mcp-publisher login github` + `mcp-publisher publish` — MCP-Registry-Eintrag (interaktiv, erfordert Oliver's GitHub-Login)
+- [ ] In bestehenden Agent-Registries/Verzeichnissen eintragen (vom User erwähnte Plattform, Name/Link noch ausständig)
 
 ## 🌱 Priorität MITTEL (nächste Schritte, falls gewünscht)
 - [ ] CoinGecko-Live-Kurse auf Donate-Seite (offen seit Tag 1)
