@@ -262,15 +262,15 @@
       var rings = buildOrbits(n);
       /* Base radius grows with number of rings so outer rings stay inside canvas */
       var numRings = rings.length;
-      var baseR = Math.min(W,H) * (0.18 + numRings * 0.04);
+      var baseR = Math.min(W,H) * (0.20 + numRings * 0.05);
       /* Flower size: smaller when many agents but never tiny */
       var flowerR = Math.max(6, Math.min(W*0.12, W*0.32/Math.sqrt(n)));
       var gIdx = 0;
 
       rings.forEach(function(ring, ri) {
-        /* Each ring further out, outer rings rotate slower */
-        var ringR   = baseR * (0.5 + ri * 0.5);
-        var ringOff = orbitSpeed * (1 - ri * 0.25);
+        /* Each ring clearly further out — strong visual separation between orbits */
+        var ringR   = baseR * (0.42 + ri * 0.85);
+        var ringOff = orbitSpeed * (1 - ri * 0.22) + ri * 0.6;
         ring.forEach(function(agentOrigIdx, ji) {
           var a = ringOff + ji * 2*Math.PI / ring.length;
           var x = cx + ringR * Math.cos(a);
