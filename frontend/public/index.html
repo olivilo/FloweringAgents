@@ -273,33 +273,40 @@
     } else {
       var rings = buildOrbits(n);
       var numRings = rings.length;
-      /* Maximaler Außenradius bleibt IMMER innerhalb des Canvas —
-         Ringe verteilen sich gleichmäßig zwischen Zentrum und Rand */
+      /* Kamera-Zoom-Effekt: mit jeder weiteren Ring-Ebene zieht sich
+         die Kamera zurück — ALLE Blüten werden gleichzeitig kleiner,
+         damit weiterhin alle Ringe ins Bild passen. */
+      var cameraZoom = Math.pow(0.74, numRings - 1);
       var maxOuterR = Math.min(W,H) * 0.46;
       var gIdx = 0;
 
+      /* Ring-Radien zuerst berechnen */
+      var ringRadii = [];
+      for (var ri2 = 0; ri2 < numRings; ri2++) {
+        var frac2 = numRings > 1 ? ri2 / (numRings - 1) : 0;
+        ringRadii.push(maxOuterR * (0.22 + frac2 * 0.78) * cameraZoom + maxOuterR * (1 - cameraZoom) * 0.15);
+      }
+
+      /* EINHEITLICHE Blütengröße: vom Kamera-Zoom gewünscht,
+         aber nie größer als der engste Ring erlaubt (keine Überlappung) */
+      var desiredR = Math.max(5, W * 0.11 * cameraZoom);
+      var tightestR = Infinity;
       rings.forEach(function(ring, ri) {
-        var frac = numRings > 1 ? ri / (numRings - 1) : 0;
-        var ringR   = maxOuterR * (0.22 + frac * 0.78);
+        var arcPerFlower = (2 * Math.PI * ringRadii[ri]) / ring.length;
+        var maxRByArc = arcPerFlower / (1.48 * 2) * 0.62;
+        tightestR = Math.min(tightestR, maxRByArc);
+      });
+      var flowerR = Math.max(3, Math.min(desiredR, tightestR));
+
+      rings.forEach(function(ring, ri) {
+        var ringR   = ringRadii[ri];
         var ringOff = orbitSpeed * (1 - ri * 0.20) + ri * 0.9;
-
-        /* Blütengröße aus verfügbarem Bogenabstand berechnen —
-           garantiert KEINE Überlappung der Blütenblätter, egal wie
-           viele Blüten in diesem Ring sitzen, egal wie groß n ist. */
-        var arcPerFlower = (2 * Math.PI * ringR) / ring.length;
-        /* Center+Petal-Reichweite ≈ 1.48 × r. Sicherheitsfaktor 0.60
-           sorgt für deutlich sichtbaren Abstand zwischen Blüten. */
-        var maxRByArc = arcPerFlower / (1.48 * 2) * 0.60;
-        var depthFactor = Math.pow(0.88, ri);
-        var ringFlowerR = Math.min(maxRByArc, W*0.12 * depthFactor);
-        ringFlowerR = Math.max(3, ringFlowerR);
-
         ring.forEach(function(agentOrigIdx, ji) {
           var a = ringOff + ji * 2*Math.PI / ring.length;
           var x = cx + ringR * Math.cos(a);
           var y = cy + ringR * Math.sin(a);
           var hue = HUES[gIdx % HUES.length];
-          drawFlower(ctx, x, y, ringFlowerR, hue, petal + gIdx*0.75, gIdx);
+          drawFlower(ctx, x, y, flowerR, hue, petal + gIdx*0.75, gIdx);
           gIdx++;
         });
       });
