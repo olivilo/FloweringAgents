@@ -151,6 +151,7 @@ async def list_agents(db: AsyncSession = Depends(get_db)):
                 "project_name":a.project_name,
                 "origin_type": a.origin_type.value if hasattr(a.origin_type,"value") else str(a.origin_type),
                 "status":      a.status.value if hasattr(a.status,"value") else str(a.status),
+                "website_url": a.website_url,
             }
             for a in agents
         ],
