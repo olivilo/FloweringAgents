@@ -71,7 +71,13 @@ async def get_favicon(domain: str):
                 media_type="image/png",
                 headers={"Cache-Control": "public, max-age=604800"},
             )
-        raise HTTPException(status_code=404, detail="Favicon not available")
+        # Explicit no-store so Cloudflare/browsers never cache a transient
+        # failure (e.g. Google rate-limiting) as if it were permanent.
+        return Response(
+            content=b"",
+            status_code=404,
+            headers={"Cache-Control": "no-store"},
+        )
 
     # Save to cache
     try:
