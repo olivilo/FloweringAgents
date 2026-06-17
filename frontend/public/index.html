@@ -179,16 +179,28 @@
     return oc;
   }
 
-  /* Orbit layout — rings with capacity [6,12,18,24,30] */
+  /* ── Fraktale Orbit-Verteilung ──────────────────────────────────────────
+     Statt starrem 6-12-18 Raster: organische Verteilung wie eine echte
+     Blütenstruktur (Phyllotaxis-inspiriert). Ein zentraler Kern, dann
+     wachsende Ringe mit ungeraden, natürlich wirkenden Kapazitäten.
+     Bei 7 Agenten z.B.: 1 Mitte, 4 innerer Ring, 2 äußerer Ring.        */
   function buildOrbits(n) {
     if (n === 1) return [[0]];
-    var caps = [6,12,18,24,30,36];
-    var rings = [], idx = 0;
-    for (var ri = 0; ri < caps.length && idx < n; ri++) {
-      var take = Math.min(caps[ri], n - idx);
+    if (n === 2) return [[0,1]];
+
+    var rings = [];
+    var idx = 0;
+    var remaining = n;
+
+    /* Erster Ring: klein (3-5), je nach n */
+    var firstRingSize = remaining <= 5 ? remaining : (remaining <= 9 ? 4 : 5);
+    while (remaining > 0) {
+      var capacity = rings.length === 0 ? firstRingSize : Math.round(firstRingSize * Math.pow(1.7, rings.length));
+      var take = Math.min(capacity, remaining);
       var ring = [];
       for (var j = 0; j < take; j++) ring.push(idx++);
       rings.push(ring);
+      remaining -= take;
     }
     return rings;
   }
@@ -260,23 +272,26 @@
       drawFlower(ctx, cx, cy, W*0.15, HUES[0], petal, 0);
     } else {
       var rings = buildOrbits(n);
-      /* Base radius grows with number of rings so outer rings stay inside canvas */
       var numRings = rings.length;
-      var baseR = Math.min(W,H) * (0.20 + numRings * 0.05);
-      /* Flower size: smaller when many agents but never tiny */
-      var flowerR = Math.max(6, Math.min(W*0.12, W*0.32/Math.sqrt(n)));
+      /* Gesamtdurchmesser des Straußes wächst leicht mit mehr Ringen,
+         aber bleibt im Rahmen — die Kamera zieht sich quasi zurück */
+      var baseR = Math.min(W,H) * (0.16 + numRings * 0.055);
+      /* Basisgröße einer Blüte im innersten Ring */
+      var innerFlowerR = Math.max(8, Math.min(W*0.13, W*0.30/Math.sqrt(n)));
       var gIdx = 0;
 
       rings.forEach(function(ring, ri) {
-        /* Each ring clearly further out — strong visual separation between orbits */
-        var ringR   = baseR * (0.42 + ri * 0.85);
-        var ringOff = orbitSpeed * (1 - ri * 0.22) + ri * 0.6;
+        /* Jeder Ring weiter außen */
+        var ringR   = baseR * (0.38 + ri * 0.78);
+        var ringOff = orbitSpeed * (1 - ri * 0.20) + ri * 0.9;
+        /* Blüten werden mit jedem Ring kleiner — Kamera-Zoom-Effekt */
+        var ringFlowerR = innerFlowerR * Math.pow(0.78, ri);
         ring.forEach(function(agentOrigIdx, ji) {
           var a = ringOff + ji * 2*Math.PI / ring.length;
           var x = cx + ringR * Math.cos(a);
           var y = cy + ringR * Math.sin(a);
           var hue = HUES[gIdx % HUES.length];
-          drawFlower(ctx, x, y, flowerR, hue, petal + gIdx*0.75, gIdx);
+          drawFlower(ctx, x, y, ringFlowerR, hue, petal + gIdx*0.75, gIdx);
           gIdx++;
         });
       });
