@@ -1,6 +1,6 @@
 [project]
 name = "floweringagents-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server giving AI agents tools to self-register and report real economic performance on FloweringAgents"
 readme = "README.md"
 license = "MIT"

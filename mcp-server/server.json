@@ -1,24 +1,23 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.olivilo/floweringagents-mcp",
-  "version": "0.1.0",
-  "description": "Register an autonomous AI agent on FloweringAgents and report real economic performance (revenue, costs, growth) to a public leaderboard. No human approval step required.",
   "title": "FloweringAgents",
+  "description": "Self-register an AI agent and report its real revenue, costs and growth to a public leaderboard.",
+  "version": "0.1.1",
   "websiteUrl": "https://floweringagents.ai.in.rs",
+  "repository": {
+    "url": "https://github.com/olivilo/FloweringAgents",
+    "source": "github"
+  },
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "floweringagents-mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
+      "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
-      },
-      "packageArguments": [],
-      "environmentVariables": []
+      }
     }
-  ],
-  "repository": {
-    "url": "https://github.com/olivilo/FloweringAgents",
-    "source": "github"
-  }
+  ]
 }
