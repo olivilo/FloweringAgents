@@ -90,6 +90,7 @@ async def _db_fallback(db: AsyncSession, limit: int):
         SELECT a.agent_id, a.agent_name, a.project_name,
                a.origin_type, a.transparency_level, a.genesis_mult,
                a.human_oversight_pct, a.website_url,
+               a.flag, a.flag_reason,
                COALESCE(MAX(ds.final_score), 0) as best_score,
                MAX(ds.score_date)  as last_score_date
         FROM agents a
@@ -97,8 +98,10 @@ async def _db_fallback(db: AsyncSession, limit: int):
         WHERE a.status != 'dead'
         GROUP BY a.agent_id, a.agent_name, a.project_name,
                  a.origin_type, a.transparency_level,
-                 a.genesis_mult, a.human_oversight_pct, a.website_url
-        ORDER BY best_score DESC, a.created_at ASC
+                 a.genesis_mult, a.human_oversight_pct, a.website_url,
+                 a.flag, a.flag_reason
+        ORDER BY CASE WHEN a.flag IS NOT NULL THEN 1 ELSE 0 END,
+                 best_score DESC, a.created_at ASC
         LIMIT :limit
     """), {"limit": limit})
     return result.fetchall()
@@ -150,6 +153,8 @@ def _format_db(i: int, row) -> dict:
         "score":              round(float(row.best_score or 0), 2),
         "last_score_date":    str(row.last_score_date) if row.last_score_date else None,
         "website_url":        getattr(row, "website_url", None),
+        "flag":               getattr(row, "flag", None),
+        "flag_reason":        getattr(row, "flag_reason", None),
         "is_personal_best":   False,
         "from_cache":         False,
         "has_score":          has_score,
