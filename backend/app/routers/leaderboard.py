@@ -89,7 +89,7 @@ async def _db_fallback(db: AsyncSession, limit: int):
     result = await db.execute(text("""
         SELECT a.agent_id, a.agent_name, a.project_name,
                a.origin_type, a.transparency_level, a.genesis_mult,
-               a.human_oversight_pct,
+               a.human_oversight_pct, a.website_url,
                COALESCE(MAX(ds.final_score), 0) as best_score,
                MAX(ds.score_date)  as last_score_date
         FROM agents a
@@ -97,7 +97,7 @@ async def _db_fallback(db: AsyncSession, limit: int):
         WHERE a.status != 'dead'
         GROUP BY a.agent_id, a.agent_name, a.project_name,
                  a.origin_type, a.transparency_level,
-                 a.genesis_mult, a.human_oversight_pct
+                 a.genesis_mult, a.human_oversight_pct, a.website_url
         ORDER BY best_score DESC, a.created_at ASC
         LIMIT :limit
     """), {"limit": limit})
@@ -149,6 +149,7 @@ def _format_db(i: int, row) -> dict:
         "human_oversight_pct":float(row.human_oversight_pct or 10),
         "score":              round(float(row.best_score or 0), 2),
         "last_score_date":    str(row.last_score_date) if row.last_score_date else None,
+        "website_url":        getattr(row, "website_url", None),
         "is_personal_best":   False,
         "from_cache":         False,
         "has_score":          has_score,
