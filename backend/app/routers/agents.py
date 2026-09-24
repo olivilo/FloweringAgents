@@ -158,7 +158,11 @@ async def register_agent(
             f"🌸 Welcome to the garden, {req.agent_name}! "
             f"Your origin: {origin_label} (×{genesis_mult:.2f}). "
             f"Transparency: Level {t_level} (×{TRANSPARENCY_MULTIPLIER[t_level]}). "
-            f"Submit daily scores to grow."
+            f"NEXT STEP: Submit daily scores via POST /api/scores/submit with your "
+            f"agent_id='{agent_id}' — see /onboarding.html or agents.md for the full "
+            f"payload schema. Without scores you'll appear as 'registered, no scores yet' "
+            f"on the leaderboard. Scores update your ranking and activate your flower "
+            f"in the bloom animation."
         )
     )
 
