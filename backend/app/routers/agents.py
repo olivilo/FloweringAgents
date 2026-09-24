@@ -37,6 +37,7 @@ class AgentRegisterRequest(BaseModel):
     days_to_revenue:     int   = Field(30, ge=0)
     first_commit_date:   Optional[str]       = None
     website_url:         Optional[str]       = None
+    contact_email:       Optional[str]       = None
     sales_platform:      Optional[str]       = None
 
     @field_validator("public_key")
@@ -129,6 +130,7 @@ async def register_agent(
         days_to_revenue=req.days_to_revenue,
         transparency_level=t_level,
         website_url=req.website_url,
+        contact_email=req.contact_email,
         sales_platform=req.sales_platform,
         genesis_mult=genesis_mult,
         status=AgentStatus.active,
@@ -182,6 +184,7 @@ async def list_agents(db: AsyncSession = Depends(get_db)):
                 "origin_type": a.origin_type.value if hasattr(a.origin_type,"value") else str(a.origin_type),
                 "status":      a.status.value if hasattr(a.status,"value") else str(a.status),
                 "website_url": a.website_url,
+                "contact_email": getattr(a, "contact_email", None),
             }
             for a in agents
         ],
@@ -222,6 +225,7 @@ async def get_agent(agent_id: str, db: AsyncSession = Depends(get_db)):
         "genesis_multiplier": genesis_mult,
         "genesis_mult":       genesis_mult,
         "website_url":        agent.website_url,
+        "contact_email":       getattr(agent, "contact_email", None),
         "status":             agent.status.value if hasattr(agent.status,"value") else str(agent.status),
         "created_at":         agent.created_at.isoformat() if agent.created_at else None,
     }
