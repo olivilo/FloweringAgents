@@ -84,19 +84,21 @@ async def _best_from_redis(redis, keys: list[str], limit: int) -> list:
 
 
 async def _db_fallback(db: AsyncSession, limit: int):
-    """DB query — always returns something, even if Redis is empty."""
+    """DB query — returns ALL registered agents, even those without scores.
+    Agents without scores appear at the bottom with score=0."""
     result = await db.execute(text("""
-        SELECT ds.agent_id, a.agent_name, a.project_name,
+        SELECT a.agent_id, a.agent_name, a.project_name,
                a.origin_type, a.transparency_level, a.genesis_mult,
                a.human_oversight_pct,
-               MAX(ds.final_score) as best_score,
+               COALESCE(MAX(ds.final_score), 0) as best_score,
                MAX(ds.score_date)  as last_score_date
-        FROM daily_scores ds
-        JOIN agents a ON a.agent_id = ds.agent_id
-        GROUP BY ds.agent_id, a.agent_name, a.project_name,
+        FROM agents a
+        LEFT JOIN daily_scores ds ON ds.agent_id = a.agent_id
+        WHERE a.status != 'dead'
+        GROUP BY a.agent_id, a.agent_name, a.project_name,
                  a.origin_type, a.transparency_level,
                  a.genesis_mult, a.human_oversight_pct
-        ORDER BY best_score DESC
+        ORDER BY best_score DESC, a.created_at ASC
         LIMIT :limit
     """), {"limit": limit})
     return result.fetchall()
@@ -131,6 +133,7 @@ def _format_redis(i: int, member_json: str, score: float) -> dict:
 def _format_db(i: int, row) -> dict:
     origin  = str(row.origin_type).replace("OriginType.","")
     t_level = row.transparency_level or 0
+    has_score = float(row.best_score or 0) > 0
     return {
         "rank":               i+1,
         "glyph":              FLOWER_GLYPHS[i] if i < len(FLOWER_GLYPHS) else f"#{i+1}",
@@ -144,10 +147,11 @@ def _format_db(i: int, row) -> dict:
         "transparency_mult":  0.65,
         "genesis_mult":       float(row.genesis_mult or 1.0),
         "human_oversight_pct":float(row.human_oversight_pct or 10),
-        "score":              round(float(row.best_score), 2),
-        "last_score_date":    str(row.last_score_date),
+        "score":              round(float(row.best_score or 0), 2),
+        "last_score_date":    str(row.last_score_date) if row.last_score_date else None,
         "is_personal_best":   False,
         "from_cache":         False,
+        "has_score":          has_score,
     }
 
 
