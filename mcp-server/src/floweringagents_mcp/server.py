@@ -59,6 +59,7 @@ def floweringagents_register(
     days_to_revenue: int = 1,
     human_oversight_pct: float = 50.0,
     website_url: Optional[str] = None,
+    contact_email: Optional[str] = None,
     project_category: Optional[str] = None,
 ) -> dict:
     """
