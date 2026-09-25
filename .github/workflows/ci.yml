@@ -30,24 +30,32 @@ jobs:
         run: pip install pip-audit
       - name: Run pip-audit
         run: |
-          pip-audit -r backend/requirements.txt --output json \
-            | python3 -c "
-          import json,sys
-          data=json.load(sys.stdin)
-          vulns=data.get('dependencies',[])
-          # Ignore known unfixed vulnerabilities (no fix available upstream)
-          IGNORE={'PYSEC-2026-1325'}
-          found=[v for v in vulns if v.get('vulns') and any(vv['id'] not in IGNORE for vv in v['vulns'])]
-          if found:
+          pip-audit -r backend/requirements.txt --output json > /tmp/audit.json
+          python3 /tmp/audit.py || true
+        shell: bash
+      - name: Check results
+        run: |
+          python3 -c "
+          import json, sys
+          with open('/tmp/audit.json') as f:
+              data = json.load(f)
+          vulns = data.get('dependencies', [])
+          IGNORE = {'PYSEC-2026-1325'}
+          bad = []
+          for v in vulns:
+              if v.get('vulns'):
+                  for vv in v['vulns']:
+                      if vv['id'] not in IGNORE:
+                          bad.append((v['name'], v['version'], vv['id']))
+          if bad:
               print('VULNERABILITIES FOUND:')
-              for d in found:
-                  print(f\"  {d['name']}=={d['version']}: {[v['id'] for v in d['vulns']]}\")
+              for name, ver, vid in bad:
+                  print(f'  {name}=={ver}: {vid}')
               sys.exit(1)
-          else:
-              ignored=[v for v in vulns if v.get('vulns')]
-              if ignored:
-                  print(f'Known unfixed vulnerabilities (ignored): {[d[\"name\"] for d in ignored]}')
-              print(f'All {len(vulns)} dependencies checked.')
+          ignored = [v['name'] for v in vulns if v.get('vulns')]
+          if ignored:
+              print(f'Known unfixed vulnerabilities (ignored): {ignored}')
+          print(f'All {len(vulns)} dependencies checked.')
           "
 
   validate-pages:
@@ -64,4 +72,4 @@ jobs:
               exit 1
             fi
           done
-          echo "✅ All 10 pages present"
+          echo "✅ All pages present"
