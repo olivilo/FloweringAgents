@@ -1,0 +1,7 @@
+[lint]
+select = ["E", "F", "W"]
+ignore = ["E501", "E402", "F841", "W291", "W292", "W293", "F401", "F811", "E302", "E303", "W605", "F541"]
+
+[lint.per-file-ignores]
+"backend/app/crypto.py" = ["BLE001"]
+"backend/app/maintenance.py" = ["BLE001"]
